@@ -1,0 +1,23 @@
+{
+  "name": "pd-spserverajax",
+  "version": "0.0.1",
+  "main": "src/library.js",
+  "scripts": {
+    "devServer": "webpack-dev-server",
+    "dev": "webpack",
+    "prod": "webpack -p"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "jquery": "latest",
+    "pd-sputil": "^2.0.1"
+  },
+  "devDependencies": {
+    "babel-core": "latest",
+    "babel-loader": "latest",
+    "babel-preset-es2015": "latest",
+    "del": "latest",
+    "webpack": "latest",
+    "webpack-dev-server": "latest"
+  }
+}
