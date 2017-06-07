@@ -1,8 +1,4 @@
 /**
-    app name spajax
- */
-
-/**
     app name pd-spservercontacts
  */
 import * as $ from "jquery";
