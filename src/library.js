@@ -86,10 +86,9 @@ const createGUID = function() {
 };
 const checkUrlOrigin = function(props, addOn) {
 
-    if (!props.origin) {
-        throw new Error('origin must be provided to ajax function, ex http://something.sharepoint.com');
-    }
-    props.configuredUrl = props.origin + props.url;
+    let siteOrigin = props.origin || location.origin;
+
+    props.configuredUrl = `${siteOrigin}/${props.url}`;
 
     if(addOn) {
         props.configuredUrl += addOn;
@@ -226,9 +225,50 @@ export function ajaxGetData(url) {
         headers: {'Accept': 'application/json; odata=minimalmetadata'}
     });
 }
-export function ajaxGetAllResults(url, allResults) {
+const createGetAllUrl = function(props) {
 
-    return ajaxGetData(url)
+    checkUrlOrigin(props, "/_api/web");
+
+    props.listUrl += "?";
+
+    if(props.select) {
+        props.listUrl += `$select=${props.select}&`;
+    }
+    if(props.top) {
+        props.listUrl += `$top=${props.top}&`;
+    }
+    if(props.expand) {
+        props.listUrl += `$expand=${props.expand}&`;
+    }
+    if(props.filter) {
+        props.listUrl += `$filter=${props.filter}&`;
+    }
+
+    if(/\$$/.test(props.listUrl)) {
+        //if $ is the last character then get rid of it
+        props.listUrl.slice(0,-1);
+    }
+
+};
+export function ajaxGetAllListResults(props, allResults) {
+    // props is, either pass listGUID or listTitle not both
+    // {
+    //     origin: ,
+    //     listGUID: ,
+    //     listTitle: ,
+    //     select: ,
+    //     filter: ,
+    //     expand: ,
+    //     top: 
+    // }
+
+    if(!props.listGUID || !props.listTitle) {
+        return $.Deferred().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
+    }
+
+    createGetAllUrl(props);
+
+    return ajaxGetData(props.listUrl)
     .then(function(response) {
         var url,
             data = allResults || [];
