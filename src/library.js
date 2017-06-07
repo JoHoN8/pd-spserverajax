@@ -201,26 +201,6 @@ const parseBasePermissions = function(value) {
     }
     return permLevels;   
 };
-
-export function ajaxGetContext(url) {
-    //response.FormDigestValue
-    var props = {url: url};
-    
-    checkUrlOrigin(props, "/_api/contextinfo");
-
-    return $.ajax({
-        url: props.configuredUrl,
-        method: "POST",
-        headers: { "Accept": "application/json; odata=minimalmetadata" }
-    });
-}
-export function ajaxGetData(url) {
-    return $.ajax({
-        url: url,
-        type: 'GET',
-        headers: {'Accept': 'application/json; odata=minimalmetadata'}
-    });
-}
 const createGetAllUrl = function(props) {
 
     checkUrlOrigin(props, "/_api/web");
@@ -246,6 +226,26 @@ const createGetAllUrl = function(props) {
     }
 
 };
+
+export function ajaxGetContext(url) {
+    //response.FormDigestValue
+    var props = {url: url};
+    
+    checkUrlOrigin(props, "/_api/contextinfo");
+
+    return $.ajax({
+        url: props.configuredUrl,
+        method: "POST",
+        headers: { "Accept": "application/json; odata=minimalmetadata" }
+    });
+}
+export function ajaxGetData(url) {
+    return $.ajax({
+        url: url,
+        type: 'GET',
+        headers: {'Accept': 'application/json; odata=minimalmetadata'}
+    });
+}
 export function ajaxGetAllListResults(props, allResults) {
     // props is, either pass listGUID or listTitle not both
     // {
