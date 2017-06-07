@@ -3,9 +3,9 @@
   "version": "0.0.1",
   "main": "src/library.js",
   "scripts": {
-    "devServer": "webpack-dev-server",
-    "dev": "webpack",
-    "prod": "webpack -p"
+    "dev": "webpack --env dev",
+    "testFile": "webpack --env test",
+    "prod": "webpack --env build"
   },
   "license": "ISC",
   "dependencies": {
@@ -18,6 +18,7 @@
     "babel-preset-es2015": "latest",
     "del": "latest",
     "webpack": "latest",
-    "webpack-dev-server": "latest"
+    "webpack-dev-server": "latest",
+    "yargs": "^8.0.1"
   }
 }
