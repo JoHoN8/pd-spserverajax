@@ -2,14 +2,16 @@
     app name pd-spservercontacts
  */
 import * as $ from "jquery";
-import * as spUtil from "pd-sputil";
+import * as spu from "pd-sputil";
 
+const minimalMeta = "application/json;odata=minimalmetadata";
+const ajaxJsonContentType = "application/json;odata=verbose";
 const profilePropsCleaner = function (props) {
     var propertiesObj = {};
 
     props.forEach(function(item) {
 
-        if ( spUtil.profileProps.indexOf(item.Key) === -1 ) {
+        if ( spu.profileProps.indexOf(item.Key) === -1 ) {
             return;
         }
         if ( item.Key === "PreferredName" ) {
@@ -34,17 +36,7 @@ const profilePropsCleaner = function (props) {
 const createProfileUrl = function(origin, email) {
     let url;
 
-    if(email) {
-        let formattedUserName = spUtil.encodeAccountName(email);
-
-        url += `${origin}/_api/sp.userprofiles.peoplemanager`;
-        url += `/getpropertiesfor(@v)?@v='${formattedUserName}'`;
-        url += '&$select=UserProfileProperties';
-    } else {
-        //url for get current user
-        url += `${origin}/_api/SP.UserProfiles.PeopleManager/GetMyProperties?`;
-        url += '&$select=UserProfileProperties';
-    }
+    
     return url;
 };
 const createlistitemtype = function(listName) {
@@ -80,14 +72,16 @@ const createGUID = function() {
     }
     return result;
 };
-const checkUrlOrigin = function(props, addOn) {
+const checkUrlOrigin = function(props) {
 
-    let siteOrigin = props.origin || location.origin;
+    props.configuredUrl = props.origin || location.origin;
 
-    props.configuredUrl = `${siteOrigin}/${props.url}`;
+    if(props.url) {
+        props.configuredUrl += props.url;
+    }
 
-    if(addOn) {
-        props.configuredUrl += addOn;
+    if(props.endPoint) {
+        props.configuredUrl += `/${props.endPoint}`;
     }
     return props;
 
@@ -99,7 +93,9 @@ const listUrlConfigure = function(props) {
         return;
     }
 
-    checkUrlOrigin(props, "/_api/web");
+    props.endPoint = "_api/web";
+
+    checkUrlOrigin(props);
 
     if (props.listGUID) {
         props.listUrl = props.configuredUrl += "/lists(guid'"+ props.listGUID +"')";
@@ -135,22 +131,25 @@ const getEntityType = function(props) {
         return data.ListItemEntityTypeFullName;
     });
 };
-const nonDeleteProcess = function(props, headerData) {
+const nonDeleteProcess = function(props) {
 
-    var item,
-        header = headerData || {};
+    if(!props.headerData) {
+        props.headerData = {};
+    }
 
     return getEntityType(props)
     .then(function(type) {
-        item = $.extend({
+        props.item = $.extend({
             '__metadata': {'type': type}
         }, props.infoToServer);
 
         return ajaxGetContext(props.url);
     }).then(function(context) {
 
-        header['X-RequestDigest'] = context.FormDigestValue;
-        header.Accept = 'application/json; odata=minimalmetadata';
+        //clear endpoint from get context
+        props.endPoint = null;
+        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData.Accept = 'application/json; odata=minimalmetadata';
 
         listItemUrlConfigure(props);
 
@@ -158,32 +157,36 @@ const nonDeleteProcess = function(props, headerData) {
             url: props.listItemUrl,
             type: 'POST',
             contentType: 'application/json;odata=verbose',
-            data: JSON.stringify(item),
-            headers: header
+            data: JSON.stringify(props.item),
+            headers: props.headerData
         });
     });
 };
-const deleteProcess = function(props, headerData, urlModifier) {
+const deleteProcess = function(props) {
 
-    var header = headerData || {};
+    if(!props.headerData) {
+        props.headerData = {};
+    }
 
     return ajaxGetContext(props.url)
     .then(function(context) {
 
-        header['X-RequestDigest'] = context.FormDigestValue;
-        header.Accept = 'application/json; odata=minimalmetadata';
+        //clear endpoint from get context
+        props.endPoint = null;
+        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData.Accept = 'application/json; odata=minimalmetadata';
 
         listItemUrlConfigure(props);
 
-        if (urlModifier) {
-            props.listItemUrl += urlModifier;
+        if (props.urlModifier) {
+            props.listItemUrl += props.urlModifier;
         }
 
         return $.ajax({
             url: props.listItemUrl,
             type: 'POST',
             contentType: 'application/json;odata=verbose',
-            headers: header
+            headers: props.headerData
         });
     });
 };
@@ -203,7 +206,10 @@ const parseBasePermissions = function(value) {
 };
 const createGetAllUrl = function(props) {
 
-    checkUrlOrigin(props, "/_api/web");
+    if(!props.endPoint) {
+        props.endPoint = "_api/web";
+    }
+    checkUrlOrigin(props);
 
     props.listUrl += "?";
 
@@ -227,11 +233,16 @@ const createGetAllUrl = function(props) {
 
 };
 
-export function ajaxGetContext(url) {
+export function ajaxGetContext(props) {
     //response.FormDigestValue
-    var props = {url: url};
+    // props is
+    // {
+    //     url: , relative site url
+    //     origin:
+    // }
     
-    checkUrlOrigin(props, "/_api/contextinfo");
+    props.endPoint = "_api/contextinfo";
+    checkUrlOrigin(props);
 
     return $.ajax({
         url: props.configuredUrl,
@@ -279,9 +290,10 @@ export function ajaxGetAllListResults(props, allResults) {
         return data;
     });
 }
-export function ajaxGetBatch(ArrayOfUrls, props) {
+export function ajaxGetBatch(props, arrayOfUrls) {
     // props = {
-    // 	url: ,
+    // origin: ,
+    // 	url: , relative siteUrl
     // 	context:
     // }
     var batchGUID = createGUID(),
@@ -292,19 +304,15 @@ export function ajaxGetBatch(ArrayOfUrls, props) {
         batchContents = [];
 
     //get context
-    if(props && props.context) {
+    if(props.context) {
         digestValue = props.context;
     } else {
+        //todo get context from server not page
         digestValue = document.getElementById('__REQUESTDIGEST').value;
     }
 
-    //getUrl
-    if(props && props.url) {
-        //must be the whole url, "https://something.sharepoint.com/sites/spdev"
-        goingToUrl = props.url;
-    } else {
-        goingToUrl = spUtil.getPageInfo().webAbsoluteUrl;
-    }
+    props.endPoint = '_api/$batch';
+    checkUrlOrigin(props);
 
     batchHeader = {
     'X-RequestDigest': digestValue,
@@ -312,7 +320,7 @@ export function ajaxGetBatch(ArrayOfUrls, props) {
     };
 
     //batch (operation)
-    ArrayOfUrls.forEach(function(item) {
+    arrayOfUrls.forEach(function(item) {
         batchContents.push('--batch_' + batchGUID);
         batchContents.push('Content-Type: application/http');
         batchContents.push('Content-Transfer-Encoding: binary');
@@ -327,7 +335,7 @@ export function ajaxGetBatch(ArrayOfUrls, props) {
     batchBody = batchContents.join('\r\n');
 
     return $.ajax({
-        url: goingToUrl + '/_api/$batch',
+        url: props.configuredUrl,
         type: 'POST',
         data: batchBody,
         headers: batchHeader
@@ -357,37 +365,42 @@ export function ajaxGetListInfo(props) {
     //if you are pulling for rest create you need property - EntityTypeName
     //will accept listGUID or listTitle
     // {
+    //  origin: ,
     // 	url: '',
     // 	listGUID: 'dfdf-dfdfdaqfe-asdfasdf-ewf'
     // }
+
     listUrlConfigure(props);
     return ajaxGetData(props.listUrl);
 }
-export function ajaxPeopleSearch(origin, requestQuery, currentResults ) {
-    //returns employees only
-    //origin should be absoult url 'https://something.sharepoint.com/_api/search/query'
+export function ajaxPeopleSearch(props, currentResults ) {
+    //returns props with results in props.results
+    // props is
+    // {
+    //     origin: ,
+    //     url: , site relative url
+    //     query: "'" + 'Bureau="'+ division + '"\''
+    // }
     var allResults = currentResults || [],
         serverQueryData = {
             sourceid: "'213c743c-4c9b-4433-ad8c-6d4c9cd4d769'",
             startrow: 0,
             rowlimit: 500,
             TrimDuplicates: false,
-            selectproperties: "'" + spUtil.profileProperties.join(',') + "'"
+            selectproperties: "'" + spu.profileProperties.join(',') + "'"
         };
-    
-        if ( typeof requestQuery === 'string' ) {
-            serverQueryData.querytext = "'" + requestQuery + "'";
-        } else{
-            //querytext: "'" + 'Bureau="'+ division + '"\''
-            serverQueryData = $.extend({}, serverQueryData, requestQuery);
-        }
+
+        props.endPoint = "_api/search/query";
+        serverQueryData.querytext = props.query;
+
+        checkUrlOrigin(props);
 
     return $.ajax({
-        url: origin,
+        url: props.configuredUrl,
         type: 'GET',
         headers: {'Accept': 'application/json; odata=minimalmetadata'},
         data: serverQueryData
-    }).then(function(empData) { //success function
+    }).then(function(empData) {
 
         var relevantResults = empData.PrimaryQueryResult.RelevantResults;
 
@@ -395,49 +408,79 @@ export function ajaxPeopleSearch(origin, requestQuery, currentResults ) {
 
         if (relevantResults.TotalRows > (serverQueryData.startrow + relevantResults.RowCount)) {
             serverQueryData.startrow = serverQueryData.startrow + relevantResults.RowCount;
-            return ajaxPeopleSearch(origin, serverQueryData, allResults);
+            return ajaxPeopleSearch(props, allResults);
         } else {
             return allResults;
         }
     });
 }
-export function ajaxEnsureUser(acctName, siteURL, context) {
-    //acctName should be i:0#.f|membership|user@domain.onmicrosoft.com link this
-    var site = siteURL || spUtil.getPageInfo().webAbsoluteUrl,
-        endpointUrl = site + "/_api/web/ensureUser('" + encodeURIComponent(acctName) + "')";
+export function ajaxEnsureUser(props, context) {
+    //email should be user@domain.onmicrosoft.com
+    // props is 
+    // {
+    //     origin: ,
+    //     url: , site relative url,
+    //     email: ,
+    //     context: optional
+    // }
+    //todo set up context to uuse the context function not the page context
+    props.endPoint = "_api/web";
+    checkUrlOrigin(props);
+
+    props.configuredUrl += `/ensureUser('${spu.encodeAccountName(props.email)}')`;
     return $.ajax({       
-        url: endpointUrl,   
+        url: props.configuredUrl,   
         type: "POST",  
-        contentType: "application/json;odata=verbose",
+        contentType: ajaxJsonContentType,
         headers: { 
-            "Accept": "application/json;odata=minimalmetadata",
+            "Accept": minimalMeta,
             "X-RequestDigest": context || document.getElementById('__REQUESTDIGEST').value
         }
     });
 }
-export function ajaxGetSiteUserInfoByKey(key) {
-    //key is i:0#.f|membership|user@domain.onmicrosoft.com
-    var encodedKey = encodeURIComponent(key),
-        url = spUtil.getPageInfo().webAbsoluteUrl + "/_api/web/siteusers?"+
-        "$filter=LoginName eq '"+ encodedKey +"'";
-    return ajaxGetData(url);
+export function ajaxGetSiteUserInfoByEmail(props) {
+    //email is user@domain.onmicrosoft.com
+    // props is
+    // {
+    //     origin: ,
+    //     url: , site relative url
+    //     email:
+    // }
+
+    props.endPoint = "_api/web/siteusers";
+    checkUrlOrigin(props);
+
+    props.configuredUrl += `?$filter=LoginName eq '${spu.encodeAccountName(props.email)}'`;
+
+    return ajaxGetData(props.configuredUrl);
 }
-export function ajaxGetItemsByCaml(properties) {
+export function ajaxGetItemsByCaml(props) {
     //_api/web/lists/GetByTitle('1232312312')
+    // props is
+    // {
+    //     origin: ,
+    //     url: ,site relative url,
+    //     caml: ,
+    //     context: optional
+    // }
+    //todo get context to use function not page
     var query = { "query" :
-            {"__metadata": 
-            { "type": "SP.CamlQuery" },
-                "ViewXml": properties.caml
-            }
-        },
-        headerdata = {
-            'Accept': 'application/json; odata=minimalmetadata',
-            'Content-Type': 'application/json; odata=verbose',
-            'X-RequestDigest': properties.context || document.getElementById('__REQUESTDIGEST').value
-        };
+        {"__metadata": 
+        { "type": "SP.CamlQuery" },
+            "ViewXml": props.caml
+        }
+    },
+    headerdata = {
+        'Accept': 'application/json; odata=minimalmetadata',
+        'Content-Type': 'application/json; odata=verbose',
+        'X-RequestDigest': props.context || document.getElementById('__REQUESTDIGEST').value
+    };
+
+    props.endPoint = 'getitems';
+    checkUrlOrigin(props);
 
     return $.ajax({
-        url: properties.url + '/getitems',
+        url: props.configuredUrl,
         type: 'POST',
         data: JSON.stringify(query),
         headers: headerdata
@@ -448,26 +491,29 @@ export function ajaxGetUserPermissions(props) {
         this function will give you an array of the permission a user has to a site or list/library
         for a site
         {
+            origin: ,
             type: site,
             url: "/sites/EA/routing", url of the site to check
-            userEmail: blahblah@elderaffairs.org
+            userEmail: blahblah@microsoft.org
         }
         for a list / library
         {
+            origin: ,
             type: list,    list or library
             url: "/sites/EA/routing", url of the site to check
-            userEmail: blahblah@elderaffairs.org,
+            userEmail: blahblah@microsoft.org,
             listTitle: 'Route State'     listTitle or listGUID
         }
     */
     var type = props.type ? props.type.toLowerCase() : null,
         toSend;
 
-    props.encodedEmail = spUtil.encodeAccountName(props.userEmail);
+    props.encodedEmail = spu.encodeAccountName(props.userEmail);
 
     if (type === 'site') {
         //getting site url
-        checkUrlOrigin(props, "/_api/web");
+        props.endPoint = "_api/web";
+        checkUrlOrigin(props);
         toSend = props.configuredUrl + "/getusereffectivepermissions(@user)?@user='"+props.encodedEmail+"'";
     } else if (type === 'list' || type === 'library') {
         //setting up list url
@@ -482,8 +528,7 @@ export function ajaxGetUserPermissions(props) {
 
     return ajaxGetData(toSend)
     .then(function(response) {
-        props.permissions = parseBasePermissions(response);
-        return props;
+        return parseBasePermissions(response);
     });
 }
 export function ajaxGetCurrentUserGroups(props) {
@@ -493,9 +538,12 @@ export function ajaxGetCurrentUserGroups(props) {
     // }
     //userid should be the id number of the person on the site - _spPageContextInfo.userId
 
+    props.endPoint = "_api/contextinfo";
     checkUrlOrigin(props, "/_api/web");
 
-    return ajaxGetData(props.configuredUrl + "/GetUserbyId(" + props.userId + ")/Groups")
+    props.configuredUrl += `/GetUserbyId(${props.userId})/Groups`;
+
+    return ajaxGetData(props.configuredUrl)
     .then(function(groups){
 
         var groupArray = [];
@@ -508,9 +556,10 @@ export function ajaxGetCurrentUserGroups(props) {
 
     });
 }
-export function ajaxCreateItem(properties) {
+export function ajaxCreateItem(props) {
     // listTitle or listGUID
     // {
+    //  origin: ,
     // 	listName: 'routeState', optional
     // 	listTitle: 'Route State'
     // 	url: "/sites/EA/routing",
@@ -519,11 +568,12 @@ export function ajaxCreateItem(properties) {
     //    TaskStatus: 'Draft',
     //    parentRouteID: routeId
     // }
-    return nonDeleteProcess(properties);
+    return nonDeleteProcess(props);
 }
-export function ajaxUpdateItem(properties) {
+export function ajaxUpdateItem(props) {
     // listTitle or listGUID
     // {
+    //  origin: ,
     // 	listName: 'routeState', optional
     // 	listTitle: 'Route State'
     // 	url: "/sites/EA/routing",
@@ -533,58 +583,97 @@ export function ajaxUpdateItem(properties) {
     //    TaskStatus: 'Draft',
     //    parentRouteID: routeId
     // }
-    return nonDeleteProcess(properties, {
+
+    props.headerData = {
         "X-HTTP-Method": "MERGE",
-        "If-Match": properties.etag || "*",
-    });
+        "If-Match": props.etag || "*"
+    };
+    return nonDeleteProcess(props);
 }
-export function ajaxDeleteItem(properties) {
+export function ajaxDeleteItem(props) {
     //****be warned if you use this function, the item you delete will be gone and unrecoverable!!!!****
     // listTitle or listGUID
-    // ajaxCreateItem({
-    //		listTitle: 'Route State'
-    //		url: "/sites/EA/routing",
-    //		itemId: 3
-    // })
-    return deleteProcess(properties, {
+        // {
+    //  origin: ,
+    // 	listTitle: 'Route State'
+    // 	url: "/sites/EA/routing",
+    // 	itemId: 3,
+    //  etag: optional
+    // }
+
+    props.headerData = {
         'X-HTTP-Method' : 'DELETE',
-        "If-Match": properties.etag || "*"
-    });
+        "If-Match": props.etag || "*"
+    };
+    return deleteProcess(props);
 }
-export function ajaxRecycleItem(properties) {
+export function ajaxRecycleItem(props) {
     // listTitle or listGUID
-    // ajaxCreateItem({
-    //		listTitle: 'Route State'
-    //		url: "/sites/EA/routing",
-    //		itemId: 3
-    // })
-    return deleteProcess(properties, null, "/recycle");
+    // {
+    //  origin: ,
+    // 	listTitle: 'Route State'
+    // 	url: "/sites/EA/routing",
+    // 	itemId: 3,
+    // }
+
+    props.urlModifier = "/recycle";
+    return deleteProcess(props);
 }
-export function userProfileData(origin, userEmail) {
+export function userProfileData(props) {
     //must pass origin, userEmail is optional
     //if you dont pass userEmail then you get current logged in user
+    // props is 
+    // {
+    //     origin: ,
+    //     email: 
+    // }
 
-    var url = createProfileUrl(origin, userEmail);
+    let addon = null;
+
+    checkUrlOrigin(props);
+
+    if(props.email) {
+        props.endPoint = '_api/sp.userprofiles.peoplemanager';
+        addon = `/getpropertiesfor(@v)?@v='${spu.encodeAccountName(props.email)}'&`;
+    } else {
+        //url for get current user
+        props.endPoint = '_api/SP.UserProfiles.PeopleManager/GetMyProperties';
+        addon = '?';
+    }
+    props.configuredUrl += `${addon}$select=UserProfileProperties`;
     
-    return ajaxGetData(url)
-    .then(function(properties){ //success
+    return ajaxGetData(props.configuredUrl)
+    .then(function(userData){ //success
 
-        if (properties['odata.null'] === true) {
+        if (userData['odata.null'] === true) {
 
             return 'User Not Found';
 
         } else{
 
-            return profilePropsCleaner(properties.UserProfileProperties);
+            return profilePropsCleaner(userData.UserProfileProperties);
 
         }
 
     });
 }
-export function getListColumns(siteUrl, listId, includeAll) {
+export function getListColumns(props) {
 	//includeAll is for hidden and readOnly
-	var includeOthers = includeAll || false,
-		url = siteUrl + "/_api/web/lists(guid'"+listId+"')/fields?$filter=Hidden eq "+includeOthers+" and ReadOnlyField eq "+ includeOthers;
+    //either pass listTitle or listGUID not both
+    // props is
+    // {
+    //     origin: ,
+    //     url: ,
+    //     listGUID: ,
+    //     listTitle: ,
+    //     allData: 
+    // }
 
-	return ajaxGetData(url);
+    if(!props.allData) {
+        props.allData = false;
+    }
+    listUrlConfigure(props);
+    props.listUrl += `/fields?$filter=Hidden eq ${props.allData} and ReadOnlyField eq ${props.allData}`;
+
+	return ajaxGetData(props.listUrl);
 }
