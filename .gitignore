@@ -28,5 +28,5 @@ build/Release
 node_modules
 
 #my testing files
-project_tests.js
-/tests
+*_tests.js
+tests
