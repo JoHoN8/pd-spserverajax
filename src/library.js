@@ -279,7 +279,7 @@ export function ajaxGetAllListResults(props, allResults) {
         });
         if (response['odata.nextLink']) {
             url = response['odata.nextLink'];
-            return ajaxGetAllResults(url, data);
+            return ajaxGetAllListResults(url, data);
         }
         return data;
     });
@@ -432,7 +432,7 @@ export function ajaxPeopleSearch(props) {
  * @param {{origin:string, url:string, email:string}} props
  * @returns {promise}
  */
-export function ajaxEnsureUser(props, context) {
+export function ajaxEnsureUser(props) {
     
     return ajaxGetContext(props)
     .then((response) => {
