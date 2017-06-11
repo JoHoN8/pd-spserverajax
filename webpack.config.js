@@ -45,7 +45,7 @@ if(env === 'test') {
     entryPoint = './project_tests.js';
     output = {
         path: path.resolve(__dirname, "./tests"),
-        filename: "spUtil_tests.js",
+        filename: "spServerAjax_tests.js",
     };
     external['./src/library.js'] = "pdspserverajax";
     external.jquery = "jQuery";

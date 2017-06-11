@@ -100,14 +100,15 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.ajaxGetContext = ajaxGetContext;
 exports.ajaxGetData = ajaxGetData;
-exports.ajaxGetAllResults = ajaxGetAllResults;
+exports.ajaxGetAllListResults = ajaxGetAllListResults;
 exports.ajaxGetBatch = ajaxGetBatch;
 exports.ajaxGetListInfo = ajaxGetListInfo;
 exports.ajaxPeopleSearch = ajaxPeopleSearch;
 exports.ajaxEnsureUser = ajaxEnsureUser;
-exports.ajaxGetSiteUserInfoByKey = ajaxGetSiteUserInfoByKey;
+exports.ajaxGetSiteUserInfoByEmail = ajaxGetSiteUserInfoByEmail;
 exports.ajaxGetItemsByCaml = ajaxGetItemsByCaml;
-exports.ajaxGetUserPermissions = ajaxGetUserPermissions;
+exports.ajaxGetUserSitePermissions = ajaxGetUserSitePermissions;
+exports.ajaxGetUserListPermissions = ajaxGetUserListPermissions;
 exports.ajaxGetCurrentUserGroups = ajaxGetCurrentUserGroups;
 exports.ajaxCreateItem = ajaxCreateItem;
 exports.ajaxUpdateItem = ajaxUpdateItem;
@@ -122,59 +123,15 @@ var $ = _interopRequireWildcard(_jquery);
 
 var _pdSputil = __webpack_require__(1);
 
-var spUtil = _interopRequireWildcard(_pdSputil);
+var spu = _interopRequireWildcard(_pdSputil);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 /**
-    app name spajax
- */
-
-/**
     app name pd-spservercontacts
  */
-var profilePropsCleaner = function profilePropsCleaner(props) {
-    var propertiesObj = {};
-
-    props.forEach(function (item) {
-
-        if (spUtil.profileProps.indexOf(item.Key) === -1) {
-            return;
-        }
-        if (item.Key === "PreferredName") {
-            propertiesObj.DisplayName = item.Value || 'None';
-        }
-        if (item.Key === "SPS-JobTitle") {
-            propertiesObj.JobTitle = item.Value || 'None';
-        }
-        if (item.Key === "SPS-Department") {
-            propertiesObj.Department = item.Value || 'None';
-        }
-        if (item.Key === "SPS-Location") {
-            propertiesObj.Location = item.Value || 'None';
-        }
-
-        propertiesObj[item.Key] = item.Value || 'None';
-    });
-
-    return propertiesObj;
-};
-var createProfileUrl = function createProfileUrl(origin, email) {
-    var url = void 0;
-
-    if (email) {
-        var formattedUserName = spUtil.encodeAccountName(email);
-
-        url += origin + "/_api/sp.userprofiles.peoplemanager";
-        url += "/getpropertiesfor(@v)?@v='" + formattedUserName + "'";
-        url += '&$select=UserProfileProperties';
-    } else {
-        //url for get current user
-        url += origin + "/_api/SP.UserProfiles.PeopleManager/GetMyProperties?";
-        url += '&$select=UserProfileProperties';
-    }
-    return url;
-};
+var minimalMeta = "application/json;odata=minimalmetadata";
+var ajaxJsonContentType = "application/json;odata=verbose";
 var createlistitemtype = function createlistitemtype(listName) {
     return 'SP.Data.' + listName.charAt(0).toUpperCase() + listName.slice(1) + 'ListItem';
 };
@@ -205,15 +162,16 @@ var createGUID = function createGUID() {
     }
     return result;
 };
-var checkUrlOrigin = function checkUrlOrigin(props, addOn) {
+var checkUrlOrigin = function checkUrlOrigin(props) {
 
-    if (!props.origin) {
-        throw new Error('origin must be provided to ajax function, ex http://something.sharepoint.com');
+    props.configuredUrl = props.origin || location.origin;
+
+    if (props.url) {
+        props.configuredUrl += props.url;
     }
-    props.configuredUrl = props.origin + props.url;
 
-    if (addOn) {
-        props.configuredUrl += addOn;
+    if (props.endPoint) {
+        props.configuredUrl += "/" + props.endPoint;
     }
     return props;
 
@@ -225,7 +183,9 @@ var listUrlConfigure = function listUrlConfigure(props) {
         return;
     }
 
-    checkUrlOrigin(props, "/_api/web");
+    props.endPoint = "_api/web";
+
+    checkUrlOrigin(props);
 
     if (props.listGUID) {
         props.listUrl = props.configuredUrl += "/lists(guid'" + props.listGUID + "')";
@@ -260,21 +220,22 @@ var getEntityType = function getEntityType(props) {
         return data.ListItemEntityTypeFullName;
     });
 };
-var nonDeleteProcess = function nonDeleteProcess(props, headerData) {
+var nonDeleteProcess = function nonDeleteProcess(props) {
 
-    var item,
-        header = headerData || {};
+    if (!props.headerData) {
+        props.headerData = {};
+    }
 
     return getEntityType(props).then(function (type) {
-        item = $.extend({
+        props.item = $.extend({
             '__metadata': { 'type': type }
         }, props.infoToServer);
 
         return ajaxGetContext(props.url);
     }).then(function (context) {
 
-        header['X-RequestDigest'] = context.FormDigestValue;
-        header.Accept = 'application/json; odata=minimalmetadata';
+        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData.Accept = 'application/json; odata=minimalmetadata';
 
         listItemUrlConfigure(props);
 
@@ -282,31 +243,33 @@ var nonDeleteProcess = function nonDeleteProcess(props, headerData) {
             url: props.listItemUrl,
             type: 'POST',
             contentType: 'application/json;odata=verbose',
-            data: JSON.stringify(item),
-            headers: header
+            data: JSON.stringify(props.item),
+            headers: props.headerData
         });
     });
 };
-var deleteProcess = function deleteProcess(props, headerData, urlModifier) {
+var deleteProcess = function deleteProcess(props) {
 
-    var header = headerData || {};
+    if (!props.headerData) {
+        props.headerData = {};
+    }
 
     return ajaxGetContext(props.url).then(function (context) {
 
-        header['X-RequestDigest'] = context.FormDigestValue;
-        header.Accept = 'application/json; odata=minimalmetadata';
+        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData.Accept = 'application/json; odata=minimalmetadata';
 
         listItemUrlConfigure(props);
 
-        if (urlModifier) {
-            props.listItemUrl += urlModifier;
+        if (props.urlModifier) {
+            props.listItemUrl += props.urlModifier;
         }
 
         return $.ajax({
             url: props.listItemUrl,
             type: 'POST',
             contentType: 'application/json;odata=verbose',
-            headers: header
+            headers: props.headerData
         });
     });
 };
@@ -324,19 +287,77 @@ var parseBasePermissions = function parseBasePermissions(value) {
     }
     return permLevels;
 };
+var createGetAllUrl = function createGetAllUrl(props) {
 
-function ajaxGetContext(url) {
-    //response.FormDigestValue
-    var props = { url: url };
+    if (props.listUrl) {
+        //already setup, get out
+        return;
+    }
+    if (!props.endPoint) {
+        props.endPoint = "_api/web";
+    }
+    listUrlConfigure(props);
 
-    checkUrlOrigin(props, "/_api/contextinfo");
+    props.listUrl += "/items?";
+
+    if (props.select) {
+        props.listUrl += "$select=" + props.select + "&";
+    }
+    if (props.top) {
+        props.listUrl += "$top=" + props.top + "&";
+    }
+    if (props.expand) {
+        props.listUrl += "$expand=" + props.expand + "&";
+    }
+    if (props.filter) {
+        props.listUrl += "$filter=" + props.filter + "&";
+    }
+    if (props.orderBy) {
+        props.listUrl += "$orderby=" + props.orderBy + "&";
+    }
+
+    if (/\$$/.test(props.listUrl)) {
+        //if $ is the last character then get rid of it
+        props.listUrl.slice(0, -1);
+    }
+};
+var ajaxGetUserPermissions = function ajaxGetUserPermissions(props) {
+
+    return ajaxGetData(props.permsLink).then(function (response) {
+        return parseBasePermissions(response);
+    });
+};
+
+/**
+ * Gets a context object for server requests.
+ * origin is optional
+ * url is site relative url
+ * returns a jquery promise
+ * the key from response is FormDigestValue
+ * @param {{origin:string, url:string}} props
+ * @returns {promise}
+ */
+function ajaxGetContext(props) {
+
+    props.endPoint = "_api/contextinfo";
+    checkUrlOrigin(props);
 
     return $.ajax({
         url: props.configuredUrl,
         method: "POST",
         headers: { "Accept": "application/json; odata=minimalmetadata" }
+    }).then(function (response) {
+        props.endPoint = null;
+        props.configuredUrl = null;
+        return response;
     });
 }
+/**
+ * Returns a jquery promise
+ * url is full odata url
+ * @param {string} url
+ * @returns {promise}
+ */
 function ajaxGetData(url) {
     return $.ajax({
         url: url,
@@ -344,56 +365,62 @@ function ajaxGetData(url) {
         headers: { 'Accept': 'application/json; odata=minimalmetadata' }
     });
 }
-function ajaxGetAllResults(url, allResults) {
+/**
+ * Gets all results for server requests.
+ * url is site relative url
+ * either pass listGUID or listTitle but not both
+ * 
+ * the following are optional
+ * origin
+ * select
+ * filter
+ * expand
+ * top
+ * orderby
+ * 
+ * returns a jquery promise
+ * once the promise resolves you get an array of objects that are the servers response
+ * @param {{origin:string, url:string, listGUID:string, listTitle:string, select:string, filter:string, expand:string, top:string, orderBy:string}} props
+ * @returns {promise}
+ */
+function ajaxGetAllListResults(props) {
 
-    return ajaxGetData(url).then(function (response) {
+    if (!props.listGUID && !props.listTitle) {
+        return $.Deferred().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
+    }
+
+    createGetAllUrl(props);
+
+    return ajaxGetData(props.listUrl).then(function (response) {
         var url,
-            data = allResults || [];
+            currentResults = props.allResults || [];
 
-        response.value.forEach(function (item) {
-            data.push(item);
-        });
+        props.allResults = currentResults.concat(response.value);
+
         if (response['odata.nextLink']) {
-            url = response['odata.nextLink'];
-            return ajaxGetAllResults(url, data);
+            props.listUrl = response['odata.nextLink'];
+            return ajaxGetAllListResults(props);
         }
-        return data;
+        return props.allResults;
     });
 }
-function ajaxGetBatch(ArrayOfUrls, props) {
-    // props = {
-    // 	url: ,
-    // 	context:
-    // }
+/**
+ * Returns a jquery promise
+ * origin is optional
+ * once the promise resolves you get an array of objects that are the servers response
+ * @param {{origin:string, url:string}} url
+ * @param {string[]} arrayOfUrls
+ * @returns {promise}
+ */
+function ajaxGetBatch(props, arrayOfUrls) {
+
     var batchGUID = createGUID(),
-        digestValue,
         batchBody,
         batchHeader,
-        goingToUrl,
         batchContents = [];
 
-    //get context
-    if (props && props.context) {
-        digestValue = props.context;
-    } else {
-        digestValue = document.getElementById('__REQUESTDIGEST').value;
-    }
-
-    //getUrl
-    if (props && props.url) {
-        //must be the whole url, "https://something.sharepoint.com/sites/spdev"
-        goingToUrl = props.url;
-    } else {
-        goingToUrl = spUtil.getPageInfo().webAbsoluteUrl;
-    }
-
-    batchHeader = {
-        'X-RequestDigest': digestValue,
-        'Content-Type': 'multipart/mixed; boundary="batch_' + batchGUID + '"'
-    };
-
     //batch (operation)
-    ArrayOfUrls.forEach(function (item) {
+    arrayOfUrls.forEach(function (item) {
         batchContents.push('--batch_' + batchGUID);
         batchContents.push('Content-Type: application/http');
         batchContents.push('Content-Transfer-Encoding: binary');
@@ -407,169 +434,248 @@ function ajaxGetBatch(ArrayOfUrls, props) {
 
     batchBody = batchContents.join('\r\n');
 
-    return $.ajax({
-        url: goingToUrl + '/_api/$batch',
-        type: 'POST',
-        data: batchBody,
-        headers: batchHeader
-    }).then(function (response) {
-        var parsedArray = [],
-            responseToArray = response.split('\n');
+    return ajaxGetContext(props).then(function (response) {
 
-        for (var currentLine = 0; currentLine < responseToArray.length; currentLine++) {
-            if (responseToArray[currentLine].charAt(0) === '{') {
-                try {
-                    // parse the JSON response...
-                    var tryParseJson = JSON.parse(responseToArray[currentLine]);
+        props.endPoint = '_api/$batch';
+        checkUrlOrigin(props);
 
-                    parsedArray.push(tryParseJson);
-                } catch (e) {
-                    // don't do anything... just keep moving
+        batchHeader = {
+            'X-RequestDigest': response.FormDigestValue,
+            'Content-Type': 'multipart/mixed; boundary="batch_' + batchGUID + '"'
+        };
+
+        return $.ajax({
+            url: props.configuredUrl,
+            type: 'POST',
+            data: batchBody,
+            headers: batchHeader
+        }).then(function (response) {
+            var parsedArray = [],
+                responseToArray = response.split('\n');
+
+            for (var currentLine = 0; currentLine < responseToArray.length; currentLine++) {
+                if (responseToArray[currentLine].charAt(0) === '{') {
+                    try {
+                        // parse the JSON response...
+                        var tryParseJson = JSON.parse(responseToArray[currentLine]);
+
+                        parsedArray.push(tryParseJson);
+                    } catch (e) {
+                        // don't do anything... just keep moving
+                    }
                 }
             }
-        }
 
-        return parsedArray;
+            return parsedArray;
+        });
     });
 }
+/**
+ * Returns a jquery promise
+ * data contained in response is the properties for a list
+ * origin is optional
+ * url is site relative url
+ * pass listTitle or listGUID not both
+ * @param {{origin:string, url:string, listGUID:string, listTitle:string}} props
+ * @returns {promise}
+ */
 function ajaxGetListInfo(props) {
-    //if you are pulling for rest create you need property - EntityTypeName
-    //will accept listGUID or listTitle
-    // {
-    // 	url: '',
-    // 	listGUID: 'dfdf-dfdfdaqfe-asdfasdf-ewf'
-    // }
+
     listUrlConfigure(props);
     return ajaxGetData(props.listUrl);
 }
-function ajaxPeopleSearch(origin, requestQuery, currentResults) {
-    //returns employees only
-    //origin should be absoult url 'https://something.sharepoint.com/_api/search/query'
-    var allResults = currentResults || [],
+/**
+ * Returns a jquery promise
+ * data contained in response is the people info
+ * origin optional
+ * url is site relative url optional
+ * sourceId optional
+ * query required, ex "'" + 'Bureau="'+ divisionName + '"\''
+ * @param {{origin:string, url:string, query:string, sourceId:string}} props
+ * @returns {promise}
+ */
+function ajaxPeopleSearch(props) {
+
+    var allResults = props.currentResults || [],
         serverQueryData = {
-        sourceid: "'213c743c-4c9b-4433-ad8c-6d4c9cd4d769'",
         startrow: 0,
         rowlimit: 500,
         TrimDuplicates: false,
-        selectproperties: "'" + spUtil.profileProperties.join(',') + "'"
+        selectproperties: "'" + spu.profileProperties.join(',') + "'"
     };
 
-    if (typeof requestQuery === 'string') {
-        serverQueryData.querytext = "'" + requestQuery + "'";
-    } else {
-        //querytext: "'" + 'Bureau="'+ division + '"\''
-        serverQueryData = $.extend({}, serverQueryData, requestQuery);
+    serverQueryData.startrow = props.startrow ? props.startrow : 0;
+    serverQueryData.sourceid = props.sourceId ? props.sourceId : 'b09a7990-05ea-4af9-81ef-edfab16c4e31';
+
+    //setup search url
+    if (!props.url) {
+        //default search site
+        props.url = '/search';
     }
 
+    props.endPoint = "_api/search/query";
+    serverQueryData.querytext = props.query;
+
+    checkUrlOrigin(props);
+
     return $.ajax({
-        url: origin,
+        url: props.configuredUrl,
         type: 'GET',
         headers: { 'Accept': 'application/json; odata=minimalmetadata' },
         data: serverQueryData
     }).then(function (empData) {
-        //success function
 
         var relevantResults = empData.PrimaryQueryResult.RelevantResults;
 
         allResults = allResults.concat(relevantResults.Table.Rows);
+        props.currentResults = allResults;
 
         if (relevantResults.TotalRows > serverQueryData.startrow + relevantResults.RowCount) {
-            serverQueryData.startrow = serverQueryData.startrow + relevantResults.RowCount;
-            return ajaxPeopleSearch(origin, serverQueryData, allResults);
+            props.startrow = serverQueryData.startrow + relevantResults.RowCount;
+            return ajaxPeopleSearch(props);
         } else {
-            return allResults;
+            return props.currentResults;
         }
     });
 }
-function ajaxEnsureUser(acctName, siteURL, context) {
-    //acctName should be i:0#.f|membership|user@domain.onmicrosoft.com link this
-    var site = siteURL || spUtil.getPageInfo().webAbsoluteUrl,
-        endpointUrl = site + "/_api/web/ensureUser('" + encodeURIComponent(acctName) + "')";
-    return $.ajax({
-        url: endpointUrl,
-        type: "POST",
-        contentType: "application/json;odata=verbose",
-        headers: {
-            "Accept": "application/json;odata=minimalmetadata",
-            "X-RequestDigest": context || document.getElementById('__REQUESTDIGEST').value
-        }
+/**
+ * Returns a jquery promise
+ * data contained in response is the users info
+ * origin is optional
+ * url is site relative url
+ * email is the email address of the user
+ * @param {{origin:string, url:string, email:string}} props
+ * @returns {promise}
+ */
+function ajaxEnsureUser(props) {
+
+    return ajaxGetContext(props).then(function (response) {
+
+        props.endPoint = "_api/web";
+        checkUrlOrigin(props);
+        props.configuredUrl += "/ensureUser('" + spu.encodeAccountName(props.email) + "')";
+
+        return $.ajax({
+            url: props.configuredUrl,
+            type: "POST",
+            contentType: ajaxJsonContentType,
+            headers: {
+                "Accept": minimalMeta,
+                "X-RequestDigest": response.FormDigestValue
+            }
+        });
     });
 }
-function ajaxGetSiteUserInfoByKey(key) {
-    //key is i:0#.f|membership|user@domain.onmicrosoft.com
-    var encodedKey = encodeURIComponent(key),
-        url = spUtil.getPageInfo().webAbsoluteUrl + "/_api/web/siteusers?" + "$filter=LoginName eq '" + encodedKey + "'";
-    return ajaxGetData(url);
+/**
+ * Returns a jquery promise
+ * data contained in response is the users info
+ * origin is optional
+ * url is site relative url
+ * email is the email address of the user
+ * @param {{origin:string, url:string, email:string}} props
+ * @returns {promise}
+ */
+function ajaxGetSiteUserInfoByEmail(props) {
+
+    props.endPoint = "_api/web/siteusers";
+    checkUrlOrigin(props);
+
+    props.configuredUrl += "?$filter=LoginName eq '" + spu.encodeAccountName(props.email) + "'";
+
+    return ajaxGetData(props.configuredUrl);
 }
-function ajaxGetItemsByCaml(properties) {
-    //_api/web/lists/GetByTitle('1232312312')
-    var query = { "query": { "__metadata": { "type": "SP.CamlQuery" },
-            "ViewXml": properties.caml
-        }
-    },
-        headerdata = {
-        'Accept': 'application/json; odata=minimalmetadata',
-        'Content-Type': 'application/json; odata=verbose',
-        'X-RequestDigest': properties.context || document.getElementById('__REQUESTDIGEST').value
-    };
+/**
+ * Returns a jquery promise
+ * get results from a caml query
+ * origin is optional
+ * url is site relative url
+ * caml is the query
+ * pass eiter list giud or list title, not both
+ * @param {{origin:string, url:string, query:string, listGUID:string, listTitle:string}} props
+ * @returns {promise}
+ */
+function ajaxGetItemsByCaml(props) {
 
-    return $.ajax({
-        url: properties.url + '/getitems',
-        type: 'POST',
-        data: JSON.stringify(query),
-        headers: headerdata
-    });
-}
-function ajaxGetUserPermissions(props) {
-    /*
-        this function will give you an array of the permission a user has to a site or list/library
-        for a site
-        {
-            type: site,
-            url: "/sites/EA/routing", url of the site to check
-            userEmail: blahblah@elderaffairs.org
-        }
-        for a list / library
-        {
-            type: list,    list or library
-            url: "/sites/EA/routing", url of the site to check
-            userEmail: blahblah@elderaffairs.org,
-            listTitle: 'Route State'     listTitle or listGUID
-        }
-    */
-    var type = props.type ? props.type.toLowerCase() : null,
-        toSend;
+    return ajaxGetContext(props).then(function (response) {
 
-    props.encodedEmail = spUtil.encodeAccountName(props.userEmail);
+        var query = { "query": { "__metadata": { "type": "SP.CamlQuery" },
+                "ViewXml": props.caml
+            }
+        },
+            headerdata = {
+            'Accept': 'application/json; odata=minimalmetadata',
+            'Content-Type': 'application/json; odata=verbose',
+            'X-RequestDigest': response.FormDigestValue
+        };
 
-    if (type === 'site') {
-        //getting site url
-        checkUrlOrigin(props, "/_api/web");
-        toSend = props.configuredUrl + "/getusereffectivepermissions(@user)?@user='" + props.encodedEmail + "'";
-    } else if (type === 'list' || type === 'library') {
-        //setting up list url
         listUrlConfigure(props);
-        toSend = props.listUrl + "/getusereffectivepermissions(@user)?@user='" + props.encodedEmail + "'";
-    } else {
-        //didnot get enough data
-        throw new Error('incomplete data passed to ajaxGetUserPermissions');
-    }
+        props.listUrl += '/getitems';
 
-    return ajaxGetData(toSend).then(function (response) {
-        props.permissions = parseBasePermissions(response);
-        return props;
+        return $.ajax({
+            url: props.configuredUrl,
+            type: 'POST',
+            data: JSON.stringify(query),
+            headers: headerdata
+        });
     });
 }
+/**
+ * Returns a jquery promise
+ * get a users permissions to site
+ * the resolve is an array of permission for the user
+ * origin is optional
+ * url is site relative url
+ * @param {{origin:string, url:string, email:string}} props
+ * @returns {promise}
+ */
+function ajaxGetUserSitePermissions(props) {
+
+    var encodedEmail = spu.encodeAccountName(props.email);
+
+    props.endPoint = "_api/web";
+    checkUrlOrigin(props);
+
+    props.permLink = props.configuredUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
+    return ajaxGetUserPermissions(props);
+}
+/**
+ * Returns a jquery promise
+ * get a users permissions to list
+ * the resolve is an array of permission for the user
+ * origin is optional
+ * url is site relative url
+ * caml is the query
+ * pass eiter list giud or list title, not both
+ * @param {{origin:string, url:string, email:string, listGUID:string, listTitle:string}} props
+ * @returns {promise}
+ */
+function ajaxGetUserListPermissions(props) {
+
+    var encodedEmail = spu.encodeAccountName(props.email);
+
+    listUrlConfigure(props);
+
+    props.permLink = props.listUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
+    return ajaxGetUserPermissions(props);
+}
+/**
+ * Returns a jquery promise
+ * get the SP groups that a user is apart of
+ * the resolve is an array of group names
+ * origin is optional
+ * url is site relative url
+ * userId is the id of user in the site
+ * @param {{origin:string, url:string, userId:number}} props
+ * @returns {promise}
+ */
 function ajaxGetCurrentUserGroups(props) {
-    // porps = {
-    // 	userId: 9,
-    // 	url: "/sites/EA/routing",
-    // }
-    //userid should be the id number of the person on the site - _spPageContextInfo.userId
 
-    checkUrlOrigin(props, "/_api/web");
+    props.endPoint = "/_api/web";
+    checkUrlOrigin(props);
 
-    return ajaxGetData(props.configuredUrl + "/GetUserbyId(" + props.userId + ")/Groups").then(function (groups) {
+    props.configuredUrl += "/GetUserbyId(" + props.userId + ")/Groups";
+
+    return ajaxGetData(props.configuredUrl).then(function (groups) {
 
         var groupArray = [];
 
@@ -580,22 +686,38 @@ function ajaxGetCurrentUserGroups(props) {
         return groupArray;
     });
 }
-function ajaxCreateItem(properties) {
-    // listTitle or listGUID
-    // {
-    // 	listName: 'routeState', optional
-    // 	listTitle: 'Route State'
-    // 	url: "/sites/EA/routing",
-    // 	infoToServer: {
-    //    Title: 'Route '+ routeId +' progress tracker',
-    //    TaskStatus: 'Draft',
-    //    parentRouteID: routeId
-    // }
-    return nonDeleteProcess(properties);
+/**
+ * Returns a jquery promise
+ * creates an item in the list that is passed
+ * the resolve is an object with the created item info
+ * origin is optional
+ * url is site relative url
+ * listName is optional
+ * pass either listTitle or listGUID not both
+ * infoToServer should be a object whos key is the column name and the value is what you want stored in that column
+ * @param {{origin:string, url:string, listName:string, listTitle:string, listGUID:string, infoToServer:object}} props
+ * @returns {promise}
+ */
+function ajaxCreateItem(props) {
+    return nonDeleteProcess(props);
 }
-function ajaxUpdateItem(properties) {
+/**
+ * Returns a jquery promise
+ * updates an item in the list that is passed
+ * the resolve is an object with the update item info
+ * origin is optional
+ * url is site relative url
+ * listName is optional
+ * pass either listTitle or listGUID not both
+ * itemId is the id number of the item to be updated
+ * infoToServer should be a object whos key is the column name and the value is what you want stored in that column
+ * @param {{origin:string, url:string, listName:string, listTitle:string, listGUID:string, itemId:number, infoToServer:object}} props
+ * @returns {promise}
+ */
+function ajaxUpdateItem(props) {
     // listTitle or listGUID
     // {
+    //  origin: ,
     // 	listName: 'routeState', optional
     // 	listTitle: 'Route State'
     // 	url: "/sites/EA/routing",
@@ -605,57 +727,101 @@ function ajaxUpdateItem(properties) {
     //    TaskStatus: 'Draft',
     //    parentRouteID: routeId
     // }
-    return nonDeleteProcess(properties, {
+
+    props.headerData = {
         "X-HTTP-Method": "MERGE",
-        "If-Match": properties.etag || "*"
-    });
+        "If-Match": props.etag || "*"
+    };
+    return nonDeleteProcess(props);
 }
-function ajaxDeleteItem(properties) {
-    //****be warned if you use this function, the item you delete will be gone and unrecoverable!!!!****
-    // listTitle or listGUID
-    // ajaxCreateItem({
-    //		listTitle: 'Route State'
-    //		url: "/sites/EA/routing",
-    //		itemId: 3
-    // })
-    return deleteProcess(properties, {
+/**
+ * Returns a jquery promise
+ * deletes an item in the list that is passed
+ * origin is optional
+ * url is site relative url
+ * pass either listTitle or listGUID not both
+ * itemId is the id number of the item to be deleted
+ * etag is optional
+ * be warned if you use this function, the item you delete will be gone and unrecoverable!!!!
+ * @param {{origin:string, url:string, listTitle:string, listGUID:string, itemId:number, etag:string}} props
+ * @returns {promise}
+ */
+function ajaxDeleteItem(props) {
+    //todo try to complete this function without an etag
+    props.headerData = {
         'X-HTTP-Method': 'DELETE',
-        "If-Match": properties.etag || "*"
-    });
+        "If-Match": props.etag || "*"
+    };
+    return deleteProcess(props);
 }
-function ajaxRecycleItem(properties) {
-    // listTitle or listGUID
-    // ajaxCreateItem({
-    //		listTitle: 'Route State'
-    //		url: "/sites/EA/routing",
-    //		itemId: 3
-    // })
-    return deleteProcess(properties, null, "/recycle");
+/**
+ * Returns a jquery promise
+ * recycles an item in the list that is passed
+ * origin is optional
+ * url is site relative url
+ * pass either listTitle or listGUID not both
+ * itemId is the id number of the item to be recycled
+ * @param {{origin:string, url:string, listTitle:string, listGUID:string, itemId:number}} props
+ * @returns {promise}
+ */
+function ajaxRecycleItem(props) {
+
+    props.urlModifier = "/recycle";
+    return deleteProcess(props);
 }
-function userProfileData(origin, userEmail) {
-    //must pass origin, userEmail is optional
-    //if you dont pass userEmail then you get current logged in user
+/**
+ * Returns a jquery promise
+ * retrieves profile properties for the user email passed
+ * if you do not pass a user email it retrieves the current user
+ * origin is optional
+ * email is optional
+ * @param {{origin:string, email:string}} props
+ * @returns {promise}
+ */
+function userProfileData(props) {
 
-    var url = createProfileUrl(origin, userEmail);
+    var addon = null;
 
-    return ajaxGetData(url).then(function (properties) {
+    checkUrlOrigin(props);
+
+    if (props.email) {
+        props.endPoint = '_api/sp.userprofiles.peoplemanager';
+        addon = "/getpropertiesfor(@v)?@v='" + spu.encodeAccountName(props.email) + "'&";
+    } else {
+        //url for get current user
+        props.endPoint = '_api/SP.UserProfiles.PeopleManager/GetMyProperties';
+        addon = '?';
+    }
+    props.configuredUrl += addon + "$select=UserProfileProperties";
+
+    return ajaxGetData(props.configuredUrl).then(function (userData) {
         //success
-
-        if (properties['odata.null'] === true) {
-
-            return 'User Not Found';
+        if (userData['odata.null'] === true) {
+            return [];
         } else {
-
-            return profilePropsCleaner(properties.UserProfileProperties);
+            return userData.UserProfileProperties;
         }
     });
 }
-function getListColumns(siteUrl, listId, includeAll) {
-    //includeAll is for hidden and readOnly
-    var includeOthers = includeAll || false,
-        url = siteUrl + "/_api/web/lists(guid'" + listId + "')/fields?$filter=Hidden eq " + includeOthers + " and ReadOnlyField eq " + includeOthers;
+/**
+ * Returns a jquery promise
+ * retrieves the columns of the passed list
+ * origin is optional
+ * url is a site relative url
+ * pass listGUID or listTitle not both
+ * allData is optional, it will include all hidden and readonly if you pass true
+ * @param {{origin:string, url:string, listGUID:string, listTitle:string, allData:boolean}} props
+ * @returns {promise}
+ */
+function getListColumns(props) {
 
-    return ajaxGetData(url);
+    if (!props.allData) {
+        props.allData = false;
+    }
+    listUrlConfigure(props);
+    props.listUrl += "/fields?$filter=Hidden eq " + props.allData + " and ReadOnlyField eq " + props.allData;
+
+    return ajaxGetData(props.listUrl);
 }
 
 /***/ })

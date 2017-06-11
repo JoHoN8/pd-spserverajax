@@ -267,7 +267,7 @@ export function ajaxGetData(url) {
  */
 export function ajaxGetAllListResults(props) {
 
-    if(!props.listGUID || !props.listTitle) {
+    if(!props.listGUID && !props.listTitle) {
         return $.Deferred().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
     }
 
