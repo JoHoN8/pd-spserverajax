@@ -169,12 +169,16 @@ const parseBasePermissions = function(value) {
 };
 const createGetAllUrl = function(props) {
 
+    if(props.listUrl) {
+        //already setup, get out
+        return;
+    }
     if(!props.endPoint) {
         props.endPoint = "_api/web";
     }
-    checkUrlOrigin(props);
+    listUrlConfigure(props);
 
-    props.listUrl += "?";
+    props.listUrl += "/items?";
 
     if(props.select) {
         props.listUrl += `$select=${props.select}&`;
@@ -258,10 +262,10 @@ export function ajaxGetData(url) {
  * 
  * returns a jquery promise
  * once the promise resolves you get an array of objects that are the servers response
- * @param {{origin:string, url:string, listGUID:string, listTitle,string, select:string, filter,string, expand:string, top:string, orderBy:string}} props
+ * @param {{origin:string, url:string, listGUID:string, listTitle:string, select:string, filter:string, expand:string, top:string, orderBy:string}} props
  * @returns {promise}
  */
-export function ajaxGetAllListResults(props, allResults) {
+export function ajaxGetAllListResults(props) {
 
     if(!props.listGUID || !props.listTitle) {
         return $.Deferred().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
@@ -272,16 +276,15 @@ export function ajaxGetAllListResults(props, allResults) {
     return ajaxGetData(props.listUrl)
     .then(function(response) {
         var url,
-            data = allResults || [];
+            currentResults = props.allResults || [];
+
+        props.allResults = currentResults.concat(response.value);
         
-        response.value.forEach(function(item) {
-            data.push(item);
-        });
         if (response['odata.nextLink']) {
-            url = response['odata.nextLink'];
-            return ajaxGetAllListResults(url, data);
+            props.listUrl = response['odata.nextLink'];
+            return ajaxGetAllListResults(props);
         }
-        return data;
+        return props.allResults;
     });
 }
 /**
