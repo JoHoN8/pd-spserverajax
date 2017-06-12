@@ -7,9 +7,7 @@ const env  = require('yargs').argv.env;
 let entryPoint = './src/library.js';
 let plugins = [];
 let output = null;
-let external = {
-
-};
+let external = {};
 
 if (env === 'dev' || env === 'build') {
     entryPoint = './src/library.js';
@@ -25,12 +23,6 @@ if (env === 'dev' || env === 'build') {
         amd: 'jquery',
         root: '$'
     };
-    external.lodash = {
-        commonjs: 'lodash',
-        commonjs2: 'lodash',
-        amd: 'lodash',
-        root: '_'
-    };
     external['pd-sputil'] = {
         commonjs: 'pd-sputil',
         commonjs2: 'pd-sputil',
@@ -39,6 +31,7 @@ if (env === 'dev' || env === 'build') {
     };
 }
 if(env === 'build') {
+    output.fileName = `${packageData.name}.min.js`
     plugins.push(new UglifyJsPlugin({ minimize: true }));
 }
 if(env === 'test') {
