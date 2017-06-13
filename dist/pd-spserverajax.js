@@ -2,11 +2,11 @@
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"), require("pd-sputil"));
 	else if(typeof define === 'function' && define.amd)
-		define(["jquery", "pd-sputi"], factory);
+		define(["jquery", "pd-sputil"], factory);
 	else if(typeof exports === 'object')
 		exports["pdspserverajax"] = factory(require("jquery"), require("pd-sputil"));
 	else
-		root["pdspserverajax"] = factory(root["$"], root["pdspBase"]);
+		root["pdspserverajax"] = factory(root["$"], root["pdsputil"]);
 })(this, function(__WEBPACK_EXTERNAL_MODULE_0__, __WEBPACK_EXTERNAL_MODULE_1__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
@@ -90,46 +90,38 @@ module.exports = __WEBPACK_EXTERNAL_MODULE_1__;
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-exports.ajaxGetContext = ajaxGetContext;
-exports.ajaxGetData = ajaxGetData;
-exports.ajaxGetAllListResults = ajaxGetAllListResults;
-exports.ajaxGetBatch = ajaxGetBatch;
-exports.ajaxGetListInfo = ajaxGetListInfo;
-exports.ajaxPeopleSearch = ajaxPeopleSearch;
-exports.ajaxEnsureUser = ajaxEnsureUser;
-exports.ajaxGetSiteUserInfoByEmail = ajaxGetSiteUserInfoByEmail;
-exports.ajaxGetItemsByCaml = ajaxGetItemsByCaml;
-exports.ajaxGetUserSitePermissions = ajaxGetUserSitePermissions;
-exports.ajaxGetUserListPermissions = ajaxGetUserListPermissions;
-exports.ajaxGetCurrentUserGroups = ajaxGetCurrentUserGroups;
-exports.ajaxCreateItem = ajaxCreateItem;
-exports.ajaxUpdateItem = ajaxUpdateItem;
-exports.ajaxDeleteItem = ajaxDeleteItem;
-exports.ajaxRecycleItem = ajaxRecycleItem;
-exports.userProfileData = userProfileData;
-exports.getListColumns = getListColumns;
-
-var _jquery = __webpack_require__(0);
-
-var $ = _interopRequireWildcard(_jquery);
-
-var _pdSputil = __webpack_require__(1);
-
-var spu = _interopRequireWildcard(_pdSputil);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
-
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetContext"] = ajaxGetContext;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetData"] = ajaxGetData;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetAllListResults"] = ajaxGetAllListResults;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetBatch"] = ajaxGetBatch;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetListInfo"] = ajaxGetListInfo;
+/* harmony export (immutable) */ __webpack_exports__["ajaxPeopleSearch"] = ajaxPeopleSearch;
+/* harmony export (immutable) */ __webpack_exports__["ajaxEnsureUser"] = ajaxEnsureUser;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetSiteUserInfoByEmail"] = ajaxGetSiteUserInfoByEmail;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetItemsByCaml"] = ajaxGetItemsByCaml;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetUserSitePermissions"] = ajaxGetUserSitePermissions;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetUserListPermissions"] = ajaxGetUserListPermissions;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetCurrentUserGroups"] = ajaxGetCurrentUserGroups;
+/* harmony export (immutable) */ __webpack_exports__["ajaxCreateItem"] = ajaxCreateItem;
+/* harmony export (immutable) */ __webpack_exports__["ajaxUpdateItem"] = ajaxUpdateItem;
+/* harmony export (immutable) */ __webpack_exports__["ajaxDeleteItem"] = ajaxDeleteItem;
+/* harmony export (immutable) */ __webpack_exports__["ajaxRecycleItem"] = ajaxRecycleItem;
+/* harmony export (immutable) */ __webpack_exports__["userProfileData"] = userProfileData;
+/* harmony export (immutable) */ __webpack_exports__["getListColumns"] = getListColumns;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_pd_sputil__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_pd_sputil___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__);
 /**
     app name pd-spservercontacts
  */
+
+
+
 var minimalMeta = "application/json;odata=minimalmetadata";
 var ajaxJsonContentType = "application/json;odata=verbose";
 var createlistitemtype = function createlistitemtype(listName) {
@@ -213,7 +205,7 @@ var getEntityType = function getEntityType(props) {
 
     if (props.listName) {
         entityData = createlistitemtype(props.listName);
-        return $.Deferred().resolve(entityData);
+        return __WEBPACK_IMPORTED_MODULE_0_jquery__["Deferred"]().resolve(entityData);
     }
 
     return ajaxGetListInfo(props).then(function (data) {
@@ -227,7 +219,7 @@ var nonDeleteProcess = function nonDeleteProcess(props) {
     }
 
     return getEntityType(props).then(function (type) {
-        props.item = $.extend({
+        props.item = __WEBPACK_IMPORTED_MODULE_0_jquery__["extend"]({
             '__metadata': { 'type': type }
         }, props.infoToServer);
 
@@ -239,7 +231,7 @@ var nonDeleteProcess = function nonDeleteProcess(props) {
 
         listItemUrlConfigure(props);
 
-        return $.ajax({
+        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
             url: props.listItemUrl,
             type: 'POST',
             contentType: 'application/json;odata=verbose',
@@ -265,7 +257,7 @@ var deleteProcess = function deleteProcess(props) {
             props.listItemUrl += props.urlModifier;
         }
 
-        return $.ajax({
+        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
             url: props.listItemUrl,
             type: 'POST',
             contentType: 'application/json;odata=verbose',
@@ -342,7 +334,7 @@ function ajaxGetContext(props) {
     props.endPoint = "_api/contextinfo";
     checkUrlOrigin(props);
 
-    return $.ajax({
+    return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
         url: props.configuredUrl,
         method: "POST",
         headers: { "Accept": "application/json; odata=minimalmetadata" }
@@ -359,7 +351,7 @@ function ajaxGetContext(props) {
  * @returns {promise}
  */
 function ajaxGetData(url) {
-    return $.ajax({
+    return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
         url: url,
         type: 'GET',
         headers: { 'Accept': 'application/json; odata=minimalmetadata' }
@@ -386,7 +378,7 @@ function ajaxGetData(url) {
 function ajaxGetAllListResults(props) {
 
     if (!props.listGUID && !props.listTitle) {
-        return $.Deferred().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
+        return __WEBPACK_IMPORTED_MODULE_0_jquery__["Deferred"]().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
     }
 
     createGetAllUrl(props);
@@ -444,7 +436,7 @@ function ajaxGetBatch(props, arrayOfUrls) {
             'Content-Type': 'multipart/mixed; boundary="batch_' + batchGUID + '"'
         };
 
-        return $.ajax({
+        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
             url: props.configuredUrl,
             type: 'POST',
             data: batchBody,
@@ -501,7 +493,7 @@ function ajaxPeopleSearch(props) {
         startrow: 0,
         rowlimit: 500,
         TrimDuplicates: false,
-        selectproperties: "'" + spu.profileProperties.join(',') + "'"
+        selectproperties: "'" + __WEBPACK_IMPORTED_MODULE_1_pd_sputil__["profileProps"].join(',') + "'"
     };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;
@@ -518,7 +510,7 @@ function ajaxPeopleSearch(props) {
 
     checkUrlOrigin(props);
 
-    return $.ajax({
+    return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
         url: props.configuredUrl,
         type: 'GET',
         headers: { 'Accept': 'application/json; odata=minimalmetadata' },
@@ -553,9 +545,9 @@ function ajaxEnsureUser(props) {
 
         props.endPoint = "_api/web";
         checkUrlOrigin(props);
-        props.configuredUrl += "/ensureUser('" + spu.encodeAccountName(props.email) + "')";
+        props.configuredUrl += "/ensureUser('" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + "')";
 
-        return $.ajax({
+        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
             url: props.configuredUrl,
             type: "POST",
             contentType: ajaxJsonContentType,
@@ -580,7 +572,7 @@ function ajaxGetSiteUserInfoByEmail(props) {
     props.endPoint = "_api/web/siteusers";
     checkUrlOrigin(props);
 
-    props.configuredUrl += "?$filter=LoginName eq '" + spu.encodeAccountName(props.email) + "'";
+    props.configuredUrl += "?$filter=LoginName eq '" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + "'";
 
     return ajaxGetData(props.configuredUrl);
 }
@@ -611,7 +603,7 @@ function ajaxGetItemsByCaml(props) {
         listUrlConfigure(props);
         props.listUrl += '/getitems';
 
-        return $.ajax({
+        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
             url: props.configuredUrl,
             type: 'POST',
             data: JSON.stringify(query),
@@ -630,7 +622,7 @@ function ajaxGetItemsByCaml(props) {
  */
 function ajaxGetUserSitePermissions(props) {
 
-    var encodedEmail = spu.encodeAccountName(props.email);
+    var encodedEmail = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email);
 
     props.endPoint = "_api/web";
     checkUrlOrigin(props);
@@ -651,7 +643,7 @@ function ajaxGetUserSitePermissions(props) {
  */
 function ajaxGetUserListPermissions(props) {
 
-    var encodedEmail = spu.encodeAccountName(props.email);
+    var encodedEmail = __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email);
 
     listUrlConfigure(props);
 
@@ -786,7 +778,7 @@ function userProfileData(props) {
 
     if (props.email) {
         props.endPoint = '_api/sp.userprofiles.peoplemanager';
-        addon = "/getpropertiesfor(@v)?@v='" + spu.encodeAccountName(props.email) + "'&";
+        addon = "/getpropertiesfor(@v)?@v='" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + "'&";
     } else {
         //url for get current user
         props.endPoint = '_api/SP.UserProfiles.PeopleManager/GetMyProperties';
