@@ -2,7 +2,7 @@
     app name pd-spservercontacts
  */
 import * as $ from "jquery";
-import * as spu from "pd-sputil";
+import {encodeAccountName, profileProps} from "pd-sputil";
 
 const minimalMeta = "application/json;odata=minimalmetadata";
 const ajaxJsonContentType = "application/json;odata=verbose";
@@ -389,7 +389,7 @@ export function ajaxPeopleSearch(props) {
             startrow: 0,
             rowlimit: 500,
             TrimDuplicates: false,
-            selectproperties: "'" + spu.profileProperties.join(',') + "'"
+            selectproperties: "'" + profileProps.join(',') + "'"
         };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;
@@ -442,7 +442,7 @@ export function ajaxEnsureUser(props) {
     
         props.endPoint = "_api/web";
         checkUrlOrigin(props);
-        props.configuredUrl += `/ensureUser('${spu.encodeAccountName(props.email)}')`;
+        props.configuredUrl += `/ensureUser('${encodeAccountName(props.email)}')`;
 
         return $.ajax({       
             url: props.configuredUrl,   
@@ -470,7 +470,7 @@ export function ajaxGetSiteUserInfoByEmail(props) {
     props.endPoint = "_api/web/siteusers";
     checkUrlOrigin(props);
 
-    props.configuredUrl += `?$filter=LoginName eq '${spu.encodeAccountName(props.email)}'`;
+    props.configuredUrl += `?$filter=LoginName eq '${encodeAccountName(props.email)}'`;
 
     return ajaxGetData(props.configuredUrl);
 }
@@ -524,7 +524,7 @@ export function ajaxGetItemsByCaml(props) {
  */
 export function ajaxGetUserSitePermissions(props) {
 
-    let encodedEmail = spu.encodeAccountName(props.email);
+    let encodedEmail = encodeAccountName(props.email);
 
     props.endPoint = "_api/web";
     checkUrlOrigin(props);
@@ -545,7 +545,7 @@ export function ajaxGetUserSitePermissions(props) {
  */
 export function ajaxGetUserListPermissions(props) {
 
-    let encodedEmail = spu.encodeAccountName(props.email);
+    let encodedEmail = encodeAccountName(props.email);
 
     listUrlConfigure(props);
 
@@ -682,7 +682,7 @@ export function userProfileData(props) {
 
     if(props.email) {
         props.endPoint = '_api/sp.userprofiles.peoplemanager';
-        addon = `/getpropertiesfor(@v)?@v='${spu.encodeAccountName(props.email)}'&`;
+        addon = `/getpropertiesfor(@v)?@v='${encodeAccountName(props.email)}'&`;
     } else {
         //url for get current user
         props.endPoint = '_api/SP.UserProfiles.PeopleManager/GetMyProperties';
