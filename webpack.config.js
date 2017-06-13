@@ -7,7 +7,20 @@ const env  = require('yargs').argv.env;
 let entryPoint = './src/library.js';
 let plugins = [];
 let output = null;
-let external = {};
+let external = {
+    jquery: {
+        commonjs: 'jquery',
+        commonjs2: 'jquery',
+        amd: 'jquery',
+        root: '$'
+    },
+    'pd-sputil': {
+        commonjs: 'pd-sputil',
+        commonjs2: 'pd-sputil',
+        amd: 'pd-sputil',
+        root: 'pdsputil'
+    }
+};
 
 if (env === 'dev' || env === 'build') {
     entryPoint = './src/library.js';
@@ -17,21 +30,9 @@ if (env === 'dev' || env === 'build') {
         libraryTarget: 'umd',
         library: 'pdspserverajax' //this will be the global variable to hook into
     };
-    external.jquery = {
-        commonjs: 'jquery',
-        commonjs2: 'jquery',
-        amd: 'jquery',
-        root: '$'
-    };
-    external['pd-sputil'] = {
-        commonjs: 'pd-sputil',
-        commonjs2: 'pd-sputil',
-        amd: 'pd-sputi',
-        root: 'pdspBase'
-    };
 }
 if(env === 'build') {
-    output.fileName = `${packageData.name}.min.js`
+    output.filename = `${packageData.name}.min.js`;
     plugins.push(new UglifyJsPlugin({ minimize: true }));
 }
 if(env === 'test') {
@@ -51,11 +52,13 @@ module.exports = {
         rules:[
             {  
                 test: /\.js$/,
-                exclude: /node_modules/,
+                //exclude: /node_modules/,
                 use: {
                     loader: 'babel-loader',
                     options: {
-                        presets: ['es2015']
+                        presets: [
+                             ['es2015', {modules: false}]
+                        ]
                     }
                 }
             }
