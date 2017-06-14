@@ -223,7 +223,7 @@ var nonDeleteProcess = function nonDeleteProcess(props) {
             '__metadata': { 'type': type }
         }, props.infoToServer);
 
-        return ajaxGetContext(props.url);
+        return ajaxGetContext(props);
     }).then(function (context) {
 
         props.headerData['X-RequestDigest'] = context.FormDigestValue;
@@ -246,7 +246,7 @@ var deleteProcess = function deleteProcess(props) {
         props.headerData = {};
     }
 
-    return ajaxGetContext(props.url).then(function (context) {
+    return ajaxGetContext(props).then(function (context) {
 
         props.headerData['X-RequestDigest'] = context.FormDigestValue;
         props.headerData.Accept = 'application/json; odata=minimalmetadata';
@@ -400,7 +400,7 @@ function ajaxGetAllListResults(props) {
  * Returns a jquery promise
  * origin is optional
  * once the promise resolves you get an array of objects that are the servers response
- * @param {{origin:string, url:string}} url
+ * @param {{origin:string, url:string}} props
  * @param {string[]} arrayOfUrls
  * @returns {promise}
  */
@@ -497,13 +497,7 @@ function ajaxPeopleSearch(props) {
     };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;
-    serverQueryData.sourceid = props.sourceId ? props.sourceId : 'b09a7990-05ea-4af9-81ef-edfab16c4e31';
-
-    //setup search url
-    if (!props.url) {
-        //default search site
-        props.url = '/search';
-    }
+    serverQueryData.sourceId = props.sourceId ? props.sourceId : "'b09a7990-05ea-4af9-81ef-edfab16c4e31'";
 
     props.endPoint = "_api/search/query";
     serverQueryData.querytext = props.query;
@@ -604,7 +598,7 @@ function ajaxGetItemsByCaml(props) {
         props.listUrl += '/getitems';
 
         return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
-            url: props.configuredUrl,
+            url: props.listUrl,
             type: 'POST',
             data: JSON.stringify(query),
             headers: headerdata
@@ -627,7 +621,7 @@ function ajaxGetUserSitePermissions(props) {
     props.endPoint = "_api/web";
     checkUrlOrigin(props);
 
-    props.permLink = props.configuredUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
+    props.permsLink = props.configuredUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
     return ajaxGetUserPermissions(props);
 }
 /**
@@ -647,7 +641,7 @@ function ajaxGetUserListPermissions(props) {
 
     listUrlConfigure(props);
 
-    props.permLink = props.listUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
+    props.permsLink = props.listUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
     return ajaxGetUserPermissions(props);
 }
 /**
@@ -707,18 +701,6 @@ function ajaxCreateItem(props) {
  * @returns {promise}
  */
 function ajaxUpdateItem(props) {
-    // listTitle or listGUID
-    // {
-    //  origin: ,
-    // 	listName: 'routeState', optional
-    // 	listTitle: 'Route State'
-    // 	url: "/sites/EA/routing",
-    // 	itemId: 3,
-    // 	infoToServer: {
-    //    Title: 'Route '+ routeId +' progress tracker',
-    //    TaskStatus: 'Draft',
-    //    parentRouteID: routeId
-    // }
 
     props.headerData = {
         "X-HTTP-Method": "MERGE",
@@ -774,8 +756,6 @@ function userProfileData(props) {
 
     var addon = null;
 
-    checkUrlOrigin(props);
-
     if (props.email) {
         props.endPoint = '_api/sp.userprofiles.peoplemanager';
         addon = "/getpropertiesfor(@v)?@v='" + __webpack_require__.i(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + "'&";
@@ -784,6 +764,8 @@ function userProfileData(props) {
         props.endPoint = '_api/SP.UserProfiles.PeopleManager/GetMyProperties';
         addon = '?';
     }
+
+    checkUrlOrigin(props);
     props.configuredUrl += addon + "$select=UserProfileProperties";
 
     return ajaxGetData(props.configuredUrl).then(function (userData) {
@@ -819,4 +801,3 @@ function getListColumns(props) {
 /***/ })
 /******/ ]);
 });
-//# sourceMappingURL=pd-spserverajax.js.map
