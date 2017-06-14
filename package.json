@@ -1,6 +1,6 @@
 {
   "name": "pd-spserverajax",
-  "version": "0.0.1",
+  "version": "1.1.0",
   "main": "src/library.js",
   "scripts": {
     "dev": "webpack --env dev",
