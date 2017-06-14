@@ -43,6 +43,7 @@ if(env === 'test') {
     };
     external['./src/library.js'] = "pdspserverajax";
     external.jquery = "jQuery";
+    external['pd-sputil'] = "pdsputil";
 }
 
 module.exports = {
@@ -66,6 +67,6 @@ module.exports = {
     },
     plugins: plugins,
     externals: external,
-    devtool: 'source-map'
+    //devtool: 'source-map'
 };
 
