@@ -110,7 +110,7 @@ const nonDeleteProcess = function(props) {
             '__metadata': {'type': type}
         }, props.infoToServer);
 
-        return ajaxGetContext(props.url);
+        return ajaxGetContext(props);
     }).then(function(context) {
 
         props.headerData['X-RequestDigest'] = context.FormDigestValue;
@@ -133,7 +133,7 @@ const deleteProcess = function(props) {
         props.headerData = {};
     }
 
-    return ajaxGetContext(props.url)
+    return ajaxGetContext(props)
     .then(function(context) {
 
         props.headerData['X-RequestDigest'] = context.FormDigestValue;
@@ -291,7 +291,7 @@ export function ajaxGetAllListResults(props) {
  * Returns a jquery promise
  * origin is optional
  * once the promise resolves you get an array of objects that are the servers response
- * @param {{origin:string, url:string}} url
+ * @param {{origin:string, url:string}} props
  * @param {string[]} arrayOfUrls
  * @returns {promise}
  */
@@ -393,13 +393,7 @@ export function ajaxPeopleSearch(props) {
         };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;
-    serverQueryData.sourceid = props.sourceId ? props.sourceId : 'b09a7990-05ea-4af9-81ef-edfab16c4e31';
-
-    //setup search url
-    if(!props.url) {
-        //default search site
-        props.url = '/search';
-    }
+    serverQueryData.sourceId = props.sourceId ? props.sourceId : "'b09a7990-05ea-4af9-81ef-edfab16c4e31'";
 
     props.endPoint = "_api/search/query";
     serverQueryData.querytext = props.query;
@@ -505,7 +499,7 @@ export function ajaxGetItemsByCaml(props) {
         props.listUrl += '/getitems';
 
         return $.ajax({
-            url: props.configuredUrl,
+            url: props.listUrl,
             type: 'POST',
             data: JSON.stringify(query),
             headers: headerdata
@@ -529,7 +523,7 @@ export function ajaxGetUserSitePermissions(props) {
     props.endPoint = "_api/web";
     checkUrlOrigin(props);
 
-    props.permLink = `${props.configuredUrl}/getusereffectivepermissions(@user)?@user='${encodedEmail}'`;
+    props.permsLink = `${props.configuredUrl}/getusereffectivepermissions(@user)?@user='${encodedEmail}'`;
     return ajaxGetUserPermissions(props);
 }
 /**
@@ -549,7 +543,7 @@ export function ajaxGetUserListPermissions(props) {
 
     listUrlConfigure(props);
 
-    props.permLink = `${props.listUrl}/getusereffectivepermissions(@user)?@user='${encodedEmail}'`;
+    props.permsLink = `${props.listUrl}/getusereffectivepermissions(@user)?@user='${encodedEmail}'`;
     return ajaxGetUserPermissions(props);
 }
 /**
@@ -611,18 +605,6 @@ export function ajaxCreateItem(props) {
  * @returns {promise}
  */
 export function ajaxUpdateItem(props) {
-    // listTitle or listGUID
-    // {
-    //  origin: ,
-    // 	listName: 'routeState', optional
-    // 	listTitle: 'Route State'
-    // 	url: "/sites/EA/routing",
-    // 	itemId: 3,
-    // 	infoToServer: {
-    //    Title: 'Route '+ routeId +' progress tracker',
-    //    TaskStatus: 'Draft',
-    //    parentRouteID: routeId
-    // }
 
     props.headerData = {
         "X-HTTP-Method": "MERGE",
@@ -678,7 +660,6 @@ export function userProfileData(props) {
 
     let addon = null;
 
-    checkUrlOrigin(props);
 
     if(props.email) {
         props.endPoint = '_api/sp.userprofiles.peoplemanager';
@@ -688,6 +669,8 @@ export function userProfileData(props) {
         props.endPoint = '_api/SP.UserProfiles.PeopleManager/GetMyProperties';
         addon = '?';
     }
+    
+    checkUrlOrigin(props);
     props.configuredUrl += `${addon}$select=UserProfileProperties`;
     
     return ajaxGetData(props.configuredUrl)
