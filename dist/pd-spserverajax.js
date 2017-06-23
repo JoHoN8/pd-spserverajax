@@ -483,7 +483,8 @@ function ajaxGetListInfo(props) {
  * url is site relative url optional
  * sourceId optional
  * query required, ex "'" + 'Bureau="'+ divisionName + '"\''
- * @param {{origin:string, url:string, query:string, sourceId:string}} props
+ * properties is an array of the properties you want back from search
+ * @param {{origin:string, url:string, query:string, sourceId:string, properties:string[]} props
  * @returns {promise}
  */
 function ajaxPeopleSearch(props) {
@@ -493,7 +494,7 @@ function ajaxPeopleSearch(props) {
         startrow: 0,
         rowlimit: 500,
         TrimDuplicates: false,
-        selectproperties: "'" + __WEBPACK_IMPORTED_MODULE_1_pd_sputil__["profileProps"].join(',') + "'"
+        selectproperties: "'" + props.properties.join(',') + "'"
     };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;

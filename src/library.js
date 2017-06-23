@@ -2,7 +2,7 @@
     app name pd-spservercontacts
  */
 import * as $ from "jquery";
-import {encodeAccountName, profileProps} from "pd-sputil";
+import {encodeAccountName} from "pd-sputil";
 
 const minimalMeta = "application/json;odata=minimalmetadata";
 const ajaxJsonContentType = "application/json;odata=verbose";
@@ -379,7 +379,8 @@ export function ajaxGetListInfo(props) {
  * url is site relative url optional
  * sourceId optional
  * query required, ex "'" + 'Bureau="'+ divisionName + '"\''
- * @param {{origin:string, url:string, query:string, sourceId:string}} props
+ * properties is an array of the properties you want back from search
+ * @param {{origin:string, url:string, query:string, sourceId:string, properties:string[]} props
  * @returns {promise}
  */
 export function ajaxPeopleSearch(props) {
@@ -389,7 +390,7 @@ export function ajaxPeopleSearch(props) {
             startrow: 0,
             rowlimit: 500,
             TrimDuplicates: false,
-            selectproperties: "'" + profileProps.join(',') + "'"
+            selectproperties: "'" + props.properties.join(',') + "'"
         };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;
