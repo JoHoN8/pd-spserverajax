@@ -97,7 +97,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetContext"] = ajaxGetContext;
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetData"] = ajaxGetData;
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetAllListResults"] = ajaxGetAllListResults;
-/* harmony export (immutable) */ __webpack_exports__["ajaxGetBatch"] = ajaxGetBatch;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetBatchMetered"] = ajaxGetBatchMetered;
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetListInfo"] = ajaxGetListInfo;
 /* harmony export (immutable) */ __webpack_exports__["ajaxPeopleSearch"] = ajaxPeopleSearch;
 /* harmony export (immutable) */ __webpack_exports__["ajaxEnsureUser"] = ajaxEnsureUser;
@@ -384,8 +384,7 @@ function ajaxGetAllListResults(props) {
     createGetAllUrl(props);
 
     return ajaxGetData(props.listUrl).then(function (response) {
-        var url,
-            currentResults = props.allResults || [];
+        var currentResults = props.allResults || [];
 
         props.allResults = currentResults.concat(response.value);
 
@@ -396,15 +395,7 @@ function ajaxGetAllListResults(props) {
         return props.allResults;
     });
 }
-/**
- * Returns a jquery promise
- * origin is optional
- * once the promise resolves you get an array of objects that are the servers response
- * @param {{origin:string, url:string}} props
- * @param {string[]} arrayOfUrls
- * @returns {promise}
- */
-function ajaxGetBatch(props, arrayOfUrls) {
+var ajaxGetBatch = function ajaxGetBatch(props, arrayOfUrls) {
 
     var batchGUID = createGUID(),
         batchBody,
@@ -460,6 +451,44 @@ function ajaxGetBatch(props, arrayOfUrls) {
 
             return parsedArray;
         });
+    });
+};
+/**
+ * Returns a jquery promise
+ * origin is optional
+ * url is a relative url of the site that contains the data
+ * once the promise resolves you get an array of objects that are the servers response
+ * @param {{origin:string, url:string, getUrls:string[]}} props
+ * @returns {promise}
+ */
+function ajaxGetBatchMetered(props) {
+    var urlsForTrip = [],
+        perTripCount = 0;
+
+    props.totalItems = props.getUrls.length;
+    props.totalPerTrip = 50;
+    props.allResults = [];
+    props.numberToStartAt = 0;
+
+    for (; props.numberToStartAt < props.totalItems; props.numberToStartAt++) {
+        var url = props.getUrls[props.numberToStartAt];
+        urlsForTrip.push(url);
+        perTripCount++;
+
+        if (perTripCount === props.totalPerTrip) {
+            props.numberToStartAt++;
+            break;
+        }
+    }
+
+    return ajaxGetBatch({ origin: props.origin, url: props.url }, urlsForTrip).then(function (response) {
+        props.allResults = props.allResults.concat(response);
+
+        if (props.numberToStartAt < props.totalItems) {
+            return ajaxBatchMetered(props);
+        }
+
+        return props.allResults;
     });
 }
 /**
