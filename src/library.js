@@ -382,7 +382,7 @@ export function ajaxGetBatchMetered(props) {
         props.allResults = props.allResults.concat(response);
 
         if (props.numberToStartAt < props.totalItems) {
-            return ajaxBatchMetered(props);
+            return ajaxGetBatchMetered(props);
         }
 
         return props.allResults;
