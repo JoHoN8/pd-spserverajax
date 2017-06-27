@@ -420,14 +420,14 @@ export function ajaxPeopleSearch(props) {
             startrow: 0,
             rowlimit: 500,
             TrimDuplicates: false,
-            selectproperties: "'" + props.properties.join(',') + "'"
+            selectproperties: `'${props.properties.join(',')}'`
         };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;
     serverQueryData.sourceId = props.sourceId ? `'${props.sourceId}'` : "'b09a7990-05ea-4af9-81ef-edfab16c4e31'";
 
     props.endPoint = "_api/search/query";
-    serverQueryData.querytext = props.query;
+    serverQueryData.querytext = `'${props.query}'`;
 
     checkUrlOrigin(props);
 
