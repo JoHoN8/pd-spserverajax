@@ -782,7 +782,9 @@ function ajaxRecycleItem(props) {
  * @param {{origin:string, email:string}} props
  * @returns {promise}
  */
-function userProfileData(props) {
+function userProfileData() {
+    var props = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
 
     var addon = null;
 
