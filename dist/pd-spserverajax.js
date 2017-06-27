@@ -530,7 +530,7 @@ function ajaxPeopleSearch(props) {
     serverQueryData.sourceId = props.sourceId ? "'" + props.sourceId + "'" : "'b09a7990-05ea-4af9-81ef-edfab16c4e31'";
 
     props.endPoint = "_api/search/query";
-    serverQueryData.querytext = props.query;
+    serverQueryData.querytext = "'" + props.query + "'";
 
     checkUrlOrigin(props);
 
