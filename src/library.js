@@ -687,10 +687,9 @@ export function ajaxRecycleItem(props) {
  * @param {{origin:string, email:string}} props
  * @returns {promise}
  */
-export function userProfileData(props) {
+export function userProfileData(props = {}) {
 
     let addon = null;
-
 
     if(props.email) {
         props.endPoint = '_api/sp.userprofiles.peoplemanager';
