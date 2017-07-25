@@ -2,7 +2,7 @@
     app name pd-spservercontacts
  */
 import * as $ from "jquery";
-import {encodeAccountName} from "pd-sputil";
+import {encodeAccountName, getURLOrigin} from "pd-sputil";
 
 const minimalMeta = "application/json;odata=minimalmetadata";
 const ajaxJsonContentType = "application/json;odata=verbose";
@@ -41,7 +41,7 @@ const createGUID = function() {
 };
 const checkUrlOrigin = function(props) {
 
-    props.configuredUrl = props.origin || location.origin;
+    props.configuredUrl = props.origin ? props.origin : getURLOrigin();
 
     if(props.url) {
         props.configuredUrl += props.url;
