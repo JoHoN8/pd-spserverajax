@@ -1,7 +1,9 @@
 /**
     app name pd-spservercontacts
+    requires babel polyfill for object assign and promise
  */
-import * as $ from "jquery";
+
+import * as axios from 'axios';
 import {encodeAccountName, getURLOrigin} from "pd-sputil";
 
 const minimalMeta = "application/json;odata=minimalmetadata";
@@ -90,12 +92,12 @@ const getEntityType = function(props) {
 
     if (props.listName) {
         entityData = createlistitemtype(props.listName);
-        return $.Deferred().resolve(entityData);
+        return Promise.resolve(entityData);
     }
 
     return ajaxGetListInfo(props)
-    .then(function(data) {
-        return data.ListItemEntityTypeFullName;
+    .then(function(response) {
+        return response.data.ListItemEntityTypeFullName;
     });
 };
 const nonDeleteProcess = function(props) {
@@ -106,22 +108,22 @@ const nonDeleteProcess = function(props) {
 
     return getEntityType(props)
     .then(function(type) {
-        props.item = $.extend({
+        props.item = Object.assign({
             '__metadata': {'type': type}
         }, props.infoToServer);
 
         return ajaxGetContext(props);
     }).then(function(context) {
 
-        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
         props.headerData.Accept = 'application/json; odata=minimalmetadata';
+        props.headerData['Content-Type'] = 'application/json;odata=verbose';
 
         listItemUrlConfigure(props);
 
-        return $.ajax({
+        return axios({
             url: props.listItemUrl,
-            type: 'POST',
-            contentType: 'application/json;odata=verbose',
+            method: 'POST',
             data: JSON.stringify(props.item),
             headers: props.headerData
         });
@@ -136,8 +138,9 @@ const deleteProcess = function(props) {
     return ajaxGetContext(props)
     .then(function(context) {
 
-        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
         props.headerData.Accept = 'application/json; odata=minimalmetadata';
+        props.headerData['Content-Type'] = 'application/json;odata=verbose';
 
         listItemUrlConfigure(props);
 
@@ -145,10 +148,9 @@ const deleteProcess = function(props) {
             props.listItemUrl += props.urlModifier;
         }
 
-        return $.ajax({
+        return axios({
             url: props.listItemUrl,
-            type: 'POST',
-            contentType: 'application/json;odata=verbose',
+            method: 'POST',
             headers: props.headerData
         });
     });
@@ -206,15 +208,21 @@ const ajaxGetUserPermissions = function(props) {
 
     return ajaxGetData(props.permsLink)
     .then(function(response) {
-        return parseBasePermissions(response);
+        return parseBasePermissions(response.data);
     });
+};
+const promiseTest = function() {
+    if (Promise) {
+        return true;
+    }
+    throw new Error("Promise API is not available. Please add a polyfill to continue.");
 };
 
 /**
  * Gets a context object for server requests.
  * origin is optional
  * url is site relative url
- * returns a jquery promise
+ * returns a promise
  * the key from response is FormDigestValue
  * @param {{origin:string, url:string}} props
  * @returns {promise}
@@ -224,10 +232,10 @@ export function ajaxGetContext(props) {
     props.endPoint = "_api/contextinfo";
     checkUrlOrigin(props);
 
-    return $.ajax({
-        url: props.configuredUrl,
+    return axios({
         method: "POST",
-        headers: { "Accept": "application/json; odata=minimalmetadata" }
+        headers: { "Accept": "application/json; odata=minimalmetadata" },
+        url: props.configuredUrl,
     }).then((response) => {
         props.endPoint = null;
         props.configuredUrl = null;
@@ -235,16 +243,18 @@ export function ajaxGetContext(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * url is full odata url
  * @param {string} url
  * @returns {promise}
  */
 export function ajaxGetData(url) {
-    return $.ajax({
-        url: url,
-        type: 'GET',
-        headers: {'Accept': 'application/json; odata=minimalmetadata'}
+    promiseTest();
+
+    return axios({
+        method: 'GET',
+        headers: {'Accept': 'application/json; odata=minimalmetadata'},
+        url: url
     });
 }
 /**
@@ -260,7 +270,7 @@ export function ajaxGetData(url) {
  * top
  * orderby
  * 
- * returns a jquery promise
+ * returns a promise
  * once the promise resolves you get an array of objects that are the servers response
  * @param {{origin:string, url:string, listGUID:string, listTitle:string, select:string, filter:string, expand:string, top:string, orderBy:string}} props
  * @returns {promise}
@@ -268,19 +278,20 @@ export function ajaxGetData(url) {
 export function ajaxGetAllListResults(props) {
 
     if(!props.listGUID && !props.listTitle) {
-        return $.Deferred().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
+        return Promise.reject("must pass listGUID or listTitle to ajaxGetAllListResults");
     }
 
     createGetAllUrl(props);
 
     return ajaxGetData(props.listUrl)
     .then(function(response) {
-        var currentResults = props.allResults || [];
+        var currentResults = props.allResults || [],
+            responseData = response.data;
 
-        props.allResults = currentResults.concat(response.value);
+        props.allResults = currentResults.concat(responseData.value);
         
-        if (response['odata.nextLink']) {
-            props.listUrl = response['odata.nextLink'];
+        if (responseData['odata.nextLink']) {
+            props.listUrl = responseData['odata.nextLink'];
             return ajaxGetAllListResults(props);
         }
         return props.allResults;
@@ -315,19 +326,18 @@ const ajaxGetBatch = function(props, arrayOfUrls) {
         checkUrlOrigin(props);
 
         batchHeader = {
-        'X-RequestDigest': response.FormDigestValue,
+        'X-RequestDigest': response.data.FormDigestValue,
         'Content-Type': 'multipart/mixed; boundary="batch_' + batchGUID + '"'
         };
         
-        
-        return $.ajax({
+        return axios({
             url: props.configuredUrl,
-            type: 'POST',
+            method: 'POST',
             data: batchBody,
             headers: batchHeader
         }).then(function(response) {
             var parsedArray = [],
-                responseToArray = response.split('\n');
+                responseToArray = response.data.split('\n');
 
             for (var currentLine = 0; currentLine < responseToArray.length; currentLine++) {
                 if (responseToArray[currentLine].charAt(0) === '{') {
@@ -350,7 +360,7 @@ const ajaxGetBatch = function(props, arrayOfUrls) {
 
 };
 /**
- * Returns a jquery promise
+ * Returns a promise
  * origin is optional
  * url is a relative url of the site that contains the data
  * once the promise resolves you get an array of objects that are the servers response
@@ -389,7 +399,7 @@ export function ajaxGetBatchMetered(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * data contained in response is the properties for a list
  * origin is optional
  * url is site relative url
@@ -403,7 +413,7 @@ export function ajaxGetListInfo(props) {
     return ajaxGetData(props.listUrl);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * data contained in response is the people info
  * origin optional
  * url is site relative url optional
@@ -431,14 +441,14 @@ export function ajaxPeopleSearch(props) {
 
     checkUrlOrigin(props);
 
-    return $.ajax({
+    return axios({
         url: props.configuredUrl,
-        type: 'GET',
+        method: 'GET',
         headers: {'Accept': 'application/json; odata=minimalmetadata'},
-        data: serverQueryData
+        params: serverQueryData
     }).then(function(empData) {
 
-        var relevantResults = empData.PrimaryQueryResult.RelevantResults;
+        var relevantResults = empData.data.PrimaryQueryResult.RelevantResults;
 
         allResults = allResults.concat(relevantResults.Table.Rows);
         props.currentResults = allResults;
@@ -452,7 +462,7 @@ export function ajaxPeopleSearch(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * data contained in response is the users info
  * origin is optional
  * url is site relative url
@@ -469,20 +479,20 @@ export function ajaxEnsureUser(props) {
         checkUrlOrigin(props);
         props.configuredUrl += `/ensureUser('${encodeAccountName(props.email)}')`;
 
-        return $.ajax({       
+        return axios({       
             url: props.configuredUrl,   
-            type: "POST",  
+            method: "POST",  
             contentType: ajaxJsonContentType,
             headers: { 
                 "Accept": minimalMeta,
-                "X-RequestDigest": response.FormDigestValue
+                "X-RequestDigest": response.data.FormDigestValue
             }
         });
     });
 
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * data contained in response is the users info
  * origin is optional
  * url is site relative url
@@ -500,7 +510,7 @@ export function ajaxGetSiteUserInfoByEmail(props) {
     return ajaxGetData(props.configuredUrl);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get results from a caml query
  * origin is optional
  * url is site relative url
@@ -523,15 +533,15 @@ export function ajaxGetItemsByCaml(props) {
         headerdata = {
             'Accept': 'application/json; odata=minimalmetadata',
             'Content-Type': 'application/json; odata=verbose',
-            'X-RequestDigest': response.FormDigestValue
+            'X-RequestDigest': response.data.FormDigestValue
         };
 
         listUrlConfigure(props);
         props.listUrl += '/getitems';
 
-        return $.ajax({
+        return axios({
             url: props.listUrl,
-            type: 'POST',
+            method: 'POST',
             data: JSON.stringify(query),
             headers: headerdata
         });
@@ -539,7 +549,7 @@ export function ajaxGetItemsByCaml(props) {
 
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get a users permissions to site
  * the resolve is an array of permission for the user
  * origin is optional
@@ -558,7 +568,7 @@ export function ajaxGetUserSitePermissions(props) {
     return ajaxGetUserPermissions(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get a users permissions to list
  * the resolve is an array of permission for the user
  * origin is optional
@@ -578,7 +588,7 @@ export function ajaxGetUserListPermissions(props) {
     return ajaxGetUserPermissions(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get the SP groups that a user is apart of
  * the resolve is an array of group names
  * origin is optional
@@ -599,7 +609,7 @@ export function ajaxGetCurrentUserGroups(props) {
 
         var groupArray = [];
 
-        groups.value.forEach(function(item) {
+        groups.data.value.forEach(function(item) {
             groupArray.push(item.Title);
         });
 
@@ -608,7 +618,7 @@ export function ajaxGetCurrentUserGroups(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * creates an item in the list that is passed
  * the resolve is an object with the created item info
  * origin is optional
@@ -623,7 +633,7 @@ export function ajaxCreateItem(props) {
     return nonDeleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * updates an item in the list that is passed
  * the resolve is an object with the update item info
  * origin is optional
@@ -644,7 +654,7 @@ export function ajaxUpdateItem(props) {
     return nonDeleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * deletes an item in the list that is passed
  * origin is optional
  * url is site relative url
@@ -664,7 +674,7 @@ export function ajaxDeleteItem(props) {
     return deleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * recycles an item in the list that is passed
  * origin is optional
  * url is site relative url
@@ -679,7 +689,7 @@ export function ajaxRecycleItem(props) {
     return deleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * retrieves profile properties for the user email passed
  * if you do not pass a user email it retrieves the current user
  * origin is optional
@@ -705,15 +715,15 @@ export function userProfileData(props = {}) {
     
     return ajaxGetData(props.configuredUrl)
     .then(function(userData){ //success
-        if (userData['odata.null'] === true) {
+        if (userData.data['odata.null'] === true) {
             return [];
         } else{
-            return userData.UserProfileProperties;
+            return userData.data.UserProfileProperties;
         }
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * retrieves the columns of the passed list
  * origin is optional
  * url is a site relative url
