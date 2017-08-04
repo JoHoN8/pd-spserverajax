@@ -1,10 +1,12 @@
 /**
     app name pd-spservercontacts
     requires babel polyfill for object assign and promise
+    only needs encodeAccountName, getURLOrigin from pd-sputil
+    needs all of axios
  */
 
 import * as axios from 'axios';
-import {encodeAccountName, getURLOrigin} from "pd-sputil";
+import {encodeAccountName, getURLOrigin} from 'pd-sputil';
 
 const minimalMeta = "application/json;odata=minimalmetadata";
 const ajaxJsonContentType = "application/json;odata=verbose";
@@ -117,7 +119,7 @@ const nonDeleteProcess = function(props) {
 
         props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
         props.headerData.Accept = 'application/json; odata=minimalmetadata';
-        props.headerData['Content-Type'] = 'application/json;odata=verbose';
+        props.headerData['Content-Type'] = ajaxJsonContentType;
 
         listItemUrlConfigure(props);
 
@@ -140,7 +142,7 @@ const deleteProcess = function(props) {
 
         props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
         props.headerData.Accept = 'application/json; odata=minimalmetadata';
-        props.headerData['Content-Type'] = 'application/json;odata=verbose';
+        props.headerData['Content-Type'] = ajaxJsonContentType;
 
         listItemUrlConfigure(props);
 
@@ -211,12 +213,19 @@ const ajaxGetUserPermissions = function(props) {
         return parseBasePermissions(response.data);
     });
 };
-const promiseTest = function() {
-    if (Promise) {
-        return true;
+const depTest = function() {
+    if (!Promise || !Object.assign) {
+        throw new Error("Promise API is not available. Please add a polyfill as a dependency to continue.");
     }
-    throw new Error("Promise API is not available. Please add a polyfill to continue.");
+    if (!axios) {
+        throw new Error("axios API is not available. Please add a axios as a dependency to continue.");
+    }
+    if (!encodeAccountName || !getURLOrigin) {
+        throw new Error("pd-sputil API is not available. Please add a pd-sputil as a dependency to continue.");
+    }
 };
+
+depTest();
 
 /**
  * Gets a context object for server requests.
@@ -249,7 +258,6 @@ export function ajaxGetContext(props) {
  * @returns {promise}
  */
 export function ajaxGetData(url) {
-    promiseTest();
 
     return axios({
         method: 'GET',
@@ -311,7 +319,7 @@ const ajaxGetBatch = function(props, arrayOfUrls) {
         batchContents.push('Content-Transfer-Encoding: binary');
         batchContents.push('');
         batchContents.push('GET ' + item + ' HTTP/1.1');
-        batchContents.push('Accept: application/json;odata=minimalmetadata');
+        batchContents.push(`Accept: ${minimalMeta}`);
         batchContents.push('');
     });
 
@@ -396,6 +404,38 @@ export function ajaxGetBatchMetered(props) {
         }
 
         return props.allResults;
+    });
+}
+/**
+ * Returns a promise
+ * origin is optional
+ * url is a relative url of the site that contains the data
+ * profileEmails is an array of email addresses whos profiles will be retrieved
+ * once the promise resolves you get an array of objects that are the servers response
+ * @param {{origin:string, url:string, profileEmails:string[]}} props
+ * @returns {promise}
+ */
+export function ajaxGetBatchProfiles(props) {
+    let profileUrls = null;
+    if (!props.profileEmails || props.profileEmails.length === 0) {
+        throw new Error("profile emails must be provided when calling the batch profile function");
+    }
+
+    props.origin = getURLOrigin();
+    profileUrls = [];
+
+    let urlForSite = props.origin + props.url;
+    props.profileEmails.forEach((email) => {
+        let encoded = encodeAccountName(email);
+        profileUrls.push(`${urlForSite}/_api/sp.userprofiles.peoplemanager/GetPropertiesFor('${encoded}')?$select=UserProfileProperties`);
+    });
+
+    let {origin, url} = props;
+    
+    return ajaxGetBatchMetered({
+        origin: origin,
+        url: url,
+        getUrls: profileUrls
     });
 }
 /**

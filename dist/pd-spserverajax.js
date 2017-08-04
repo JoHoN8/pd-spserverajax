@@ -1,12 +1,12 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("jquery"), require("pd-sputil"));
+		module.exports = factory(require("axios"), require("pd-sputil"));
 	else if(typeof define === 'function' && define.amd)
-		define(["jquery", "pd-sputil"], factory);
+		define(["axios", "pd-sputil"], factory);
 	else if(typeof exports === 'object')
-		exports["pdspserverajax"] = factory(require("jquery"), require("pd-sputil"));
+		exports["pdspserverajax"] = factory(require("axios"), require("pd-sputil"));
 	else
-		root["pdspserverajax"] = factory(root["$"], root["pdsputil"]);
+		root["pdspserverajax"] = factory(root["axios"], root["pdsputil"]);
 })(this, function(__WEBPACK_EXTERNAL_MODULE_1__, __WEBPACK_EXTERNAL_MODULE_2__) {
 return /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
@@ -83,6 +83,7 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetData"] = ajaxGetData;
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetAllListResults"] = ajaxGetAllListResults;
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetBatchMetered"] = ajaxGetBatchMetered;
+/* harmony export (immutable) */ __webpack_exports__["ajaxGetBatchProfiles"] = ajaxGetBatchProfiles;
 /* harmony export (immutable) */ __webpack_exports__["ajaxGetListInfo"] = ajaxGetListInfo;
 /* harmony export (immutable) */ __webpack_exports__["ajaxPeopleSearch"] = ajaxPeopleSearch;
 /* harmony export (immutable) */ __webpack_exports__["ajaxEnsureUser"] = ajaxEnsureUser;
@@ -97,13 +98,17 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["ajaxRecycleItem"] = ajaxRecycleItem;
 /* harmony export (immutable) */ __webpack_exports__["userProfileData"] = userProfileData;
 /* harmony export (immutable) */ __webpack_exports__["getListColumns"] = getListColumns;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_axios__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_axios___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_axios__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_pd_sputil__ = __webpack_require__(2);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_pd_sputil___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__);
 /**
     app name pd-spservercontacts
+    requires babel polyfill for object assign and promise
+    only needs encodeAccountName, getURLOrigin from pd-sputil
+    needs all of axios
  */
+
 
 
 
@@ -148,7 +153,7 @@ var checkUrlOrigin = function checkUrlOrigin(props) {
     }
 
     if (props.endPoint) {
-        props.configuredUrl += "/" + props.endPoint;
+        props.configuredUrl += '/' + props.endPoint;
     }
     return props;
 
@@ -190,11 +195,11 @@ var getEntityType = function getEntityType(props) {
 
     if (props.listName) {
         entityData = createlistitemtype(props.listName);
-        return __WEBPACK_IMPORTED_MODULE_0_jquery__["Deferred"]().resolve(entityData);
+        return Promise.resolve(entityData);
     }
 
-    return ajaxGetListInfo(props).then(function (data) {
-        return data.ListItemEntityTypeFullName;
+    return ajaxGetListInfo(props).then(function (response) {
+        return response.data.ListItemEntityTypeFullName;
     });
 };
 var nonDeleteProcess = function nonDeleteProcess(props) {
@@ -204,22 +209,22 @@ var nonDeleteProcess = function nonDeleteProcess(props) {
     }
 
     return getEntityType(props).then(function (type) {
-        props.item = __WEBPACK_IMPORTED_MODULE_0_jquery__["extend"]({
+        props.item = Object.assign({
             '__metadata': { 'type': type }
         }, props.infoToServer);
 
         return ajaxGetContext(props);
     }).then(function (context) {
 
-        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
         props.headerData.Accept = 'application/json; odata=minimalmetadata';
+        props.headerData['Content-Type'] = ajaxJsonContentType;
 
         listItemUrlConfigure(props);
 
-        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
+        return __WEBPACK_IMPORTED_MODULE_0_axios__({
             url: props.listItemUrl,
-            type: 'POST',
-            contentType: 'application/json;odata=verbose',
+            method: 'POST',
             data: JSON.stringify(props.item),
             headers: props.headerData
         });
@@ -233,8 +238,9 @@ var deleteProcess = function deleteProcess(props) {
 
     return ajaxGetContext(props).then(function (context) {
 
-        props.headerData['X-RequestDigest'] = context.FormDigestValue;
+        props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
         props.headerData.Accept = 'application/json; odata=minimalmetadata';
+        props.headerData['Content-Type'] = ajaxJsonContentType;
 
         listItemUrlConfigure(props);
 
@@ -242,10 +248,9 @@ var deleteProcess = function deleteProcess(props) {
             props.listItemUrl += props.urlModifier;
         }
 
-        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
+        return __WEBPACK_IMPORTED_MODULE_0_axios__({
             url: props.listItemUrl,
-            type: 'POST',
-            contentType: 'application/json;odata=verbose',
+            method: 'POST',
             headers: props.headerData
         });
     });
@@ -278,19 +283,19 @@ var createGetAllUrl = function createGetAllUrl(props) {
     props.listUrl += "/items?";
 
     if (props.select) {
-        props.listUrl += "$select=" + props.select + "&";
+        props.listUrl += '$select=' + props.select + '&';
     }
     if (props.top) {
-        props.listUrl += "$top=" + props.top + "&";
+        props.listUrl += '$top=' + props.top + '&';
     }
     if (props.expand) {
-        props.listUrl += "$expand=" + props.expand + "&";
+        props.listUrl += '$expand=' + props.expand + '&';
     }
     if (props.filter) {
-        props.listUrl += "$filter=" + props.filter + "&";
+        props.listUrl += '$filter=' + props.filter + '&';
     }
     if (props.orderBy) {
-        props.listUrl += "$orderby=" + props.orderBy + "&";
+        props.listUrl += '$orderby=' + props.orderBy + '&';
     }
 
     if (/\$$/.test(props.listUrl)) {
@@ -301,15 +306,28 @@ var createGetAllUrl = function createGetAllUrl(props) {
 var ajaxGetUserPermissions = function ajaxGetUserPermissions(props) {
 
     return ajaxGetData(props.permsLink).then(function (response) {
-        return parseBasePermissions(response);
+        return parseBasePermissions(response.data);
     });
 };
+var depTest = function depTest() {
+    if (!Promise || !Object.assign) {
+        throw new Error("Promise API is not available. Please add a polyfill as a dependency to continue.");
+    }
+    if (!__WEBPACK_IMPORTED_MODULE_0_axios__) {
+        throw new Error("axios API is not available. Please add a axios as a dependency to continue.");
+    }
+    if (!__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"] || !__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["getURLOrigin"]) {
+        throw new Error("pd-sputil API is not available. Please add a pd-sputil as a dependency to continue.");
+    }
+};
+
+depTest();
 
 /**
  * Gets a context object for server requests.
  * origin is optional
  * url is site relative url
- * returns a jquery promise
+ * returns a promise
  * the key from response is FormDigestValue
  * @param {{origin:string, url:string}} props
  * @returns {promise}
@@ -319,10 +337,10 @@ function ajaxGetContext(props) {
     props.endPoint = "_api/contextinfo";
     checkUrlOrigin(props);
 
-    return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
-        url: props.configuredUrl,
+    return __WEBPACK_IMPORTED_MODULE_0_axios__({
         method: "POST",
-        headers: { "Accept": "application/json; odata=minimalmetadata" }
+        headers: { "Accept": "application/json; odata=minimalmetadata" },
+        url: props.configuredUrl
     }).then(function (response) {
         props.endPoint = null;
         props.configuredUrl = null;
@@ -330,16 +348,17 @@ function ajaxGetContext(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * url is full odata url
  * @param {string} url
  * @returns {promise}
  */
 function ajaxGetData(url) {
-    return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
-        url: url,
-        type: 'GET',
-        headers: { 'Accept': 'application/json; odata=minimalmetadata' }
+
+    return __WEBPACK_IMPORTED_MODULE_0_axios__({
+        method: 'GET',
+        headers: { 'Accept': 'application/json; odata=minimalmetadata' },
+        url: url
     });
 }
 /**
@@ -355,7 +374,7 @@ function ajaxGetData(url) {
  * top
  * orderby
  * 
- * returns a jquery promise
+ * returns a promise
  * once the promise resolves you get an array of objects that are the servers response
  * @param {{origin:string, url:string, listGUID:string, listTitle:string, select:string, filter:string, expand:string, top:string, orderBy:string}} props
  * @returns {promise}
@@ -363,18 +382,19 @@ function ajaxGetData(url) {
 function ajaxGetAllListResults(props) {
 
     if (!props.listGUID && !props.listTitle) {
-        return __WEBPACK_IMPORTED_MODULE_0_jquery__["Deferred"]().reject("must pass listGUID or listTitle to ajaxGetAllListResults");
+        return Promise.reject("must pass listGUID or listTitle to ajaxGetAllListResults");
     }
 
     createGetAllUrl(props);
 
     return ajaxGetData(props.listUrl).then(function (response) {
-        var currentResults = props.allResults || [];
+        var currentResults = props.allResults || [],
+            responseData = response.data;
 
-        props.allResults = currentResults.concat(response.value);
+        props.allResults = currentResults.concat(responseData.value);
 
-        if (response['odata.nextLink']) {
-            props.listUrl = response['odata.nextLink'];
+        if (responseData['odata.nextLink']) {
+            props.listUrl = responseData['odata.nextLink'];
             return ajaxGetAllListResults(props);
         }
         return props.allResults;
@@ -394,7 +414,7 @@ var ajaxGetBatch = function ajaxGetBatch(props, arrayOfUrls) {
         batchContents.push('Content-Transfer-Encoding: binary');
         batchContents.push('');
         batchContents.push('GET ' + item + ' HTTP/1.1');
-        batchContents.push('Accept: application/json;odata=minimalmetadata');
+        batchContents.push('Accept: ' + minimalMeta);
         batchContents.push('');
     });
 
@@ -408,18 +428,18 @@ var ajaxGetBatch = function ajaxGetBatch(props, arrayOfUrls) {
         checkUrlOrigin(props);
 
         batchHeader = {
-            'X-RequestDigest': response.FormDigestValue,
+            'X-RequestDigest': response.data.FormDigestValue,
             'Content-Type': 'multipart/mixed; boundary="batch_' + batchGUID + '"'
         };
 
-        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
+        return __WEBPACK_IMPORTED_MODULE_0_axios__({
             url: props.configuredUrl,
-            type: 'POST',
+            method: 'POST',
             data: batchBody,
             headers: batchHeader
         }).then(function (response) {
             var parsedArray = [],
-                responseToArray = response.split('\n');
+                responseToArray = response.data.split('\n');
 
             for (var currentLine = 0; currentLine < responseToArray.length; currentLine++) {
                 if (responseToArray[currentLine].charAt(0) === '{') {
@@ -439,7 +459,7 @@ var ajaxGetBatch = function ajaxGetBatch(props, arrayOfUrls) {
     });
 };
 /**
- * Returns a jquery promise
+ * Returns a promise
  * origin is optional
  * url is a relative url of the site that contains the data
  * once the promise resolves you get an array of objects that are the servers response
@@ -477,7 +497,41 @@ function ajaxGetBatchMetered(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
+ * origin is optional
+ * url is a relative url of the site that contains the data
+ * profileEmails is an array of email addresses whos profiles will be retrieved
+ * once the promise resolves you get an array of objects that are the servers response
+ * @param {{origin:string, url:string, profileEmails:string[]}} props
+ * @returns {promise}
+ */
+function ajaxGetBatchProfiles(props) {
+    var profileUrls = null;
+    if (!props.profileEmails || props.profileEmails.length === 0) {
+        throw new Error("profile emails must be provided when calling the batch profile function");
+    }
+
+    props.origin = Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["getURLOrigin"])();
+    profileUrls = [];
+
+    var urlForSite = props.origin + props.url;
+    props.profileEmails.forEach(function (email) {
+        var encoded = Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(email);
+        profileUrls.push(urlForSite + '/_api/sp.userprofiles.peoplemanager/GetPropertiesFor(\'' + encoded + '\')?$select=UserProfileProperties');
+    });
+
+    var origin = props.origin,
+        url = props.url;
+
+
+    return ajaxGetBatchMetered({
+        origin: origin,
+        url: url,
+        getUrls: profileUrls
+    });
+}
+/**
+ * Returns a promise
  * data contained in response is the properties for a list
  * origin is optional
  * url is site relative url
@@ -491,7 +545,7 @@ function ajaxGetListInfo(props) {
     return ajaxGetData(props.listUrl);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * data contained in response is the people info
  * origin optional
  * url is site relative url optional
@@ -508,25 +562,25 @@ function ajaxPeopleSearch(props) {
         startrow: 0,
         rowlimit: 500,
         TrimDuplicates: false,
-        selectproperties: "'" + props.properties.join(',') + "'"
+        selectproperties: '\'' + props.properties.join(',') + '\''
     };
 
     serverQueryData.startrow = props.startrow ? props.startrow : 0;
-    serverQueryData.sourceId = props.sourceId ? "'" + props.sourceId + "'" : "'b09a7990-05ea-4af9-81ef-edfab16c4e31'";
+    serverQueryData.sourceId = props.sourceId ? '\'' + props.sourceId + '\'' : "'b09a7990-05ea-4af9-81ef-edfab16c4e31'";
 
     props.endPoint = "_api/search/query";
-    serverQueryData.querytext = "'" + props.query + "'";
+    serverQueryData.querytext = '\'' + props.query + '\'';
 
     checkUrlOrigin(props);
 
-    return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
+    return __WEBPACK_IMPORTED_MODULE_0_axios__({
         url: props.configuredUrl,
-        type: 'GET',
+        method: 'GET',
         headers: { 'Accept': 'application/json; odata=minimalmetadata' },
-        data: serverQueryData
+        params: serverQueryData
     }).then(function (empData) {
 
-        var relevantResults = empData.PrimaryQueryResult.RelevantResults;
+        var relevantResults = empData.data.PrimaryQueryResult.RelevantResults;
 
         allResults = allResults.concat(relevantResults.Table.Rows);
         props.currentResults = allResults;
@@ -540,7 +594,7 @@ function ajaxPeopleSearch(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * data contained in response is the users info
  * origin is optional
  * url is site relative url
@@ -554,21 +608,21 @@ function ajaxEnsureUser(props) {
 
         props.endPoint = "_api/web";
         checkUrlOrigin(props);
-        props.configuredUrl += "/ensureUser('" + Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + "')";
+        props.configuredUrl += '/ensureUser(\'' + Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + '\')';
 
-        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
+        return __WEBPACK_IMPORTED_MODULE_0_axios__({
             url: props.configuredUrl,
-            type: "POST",
+            method: "POST",
             contentType: ajaxJsonContentType,
             headers: {
                 "Accept": minimalMeta,
-                "X-RequestDigest": response.FormDigestValue
+                "X-RequestDigest": response.data.FormDigestValue
             }
         });
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * data contained in response is the users info
  * origin is optional
  * url is site relative url
@@ -581,12 +635,12 @@ function ajaxGetSiteUserInfoByEmail(props) {
     props.endPoint = "_api/web/siteusers";
     checkUrlOrigin(props);
 
-    props.configuredUrl += "?$filter=LoginName eq '" + Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + "'";
+    props.configuredUrl += '?$filter=LoginName eq \'' + Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + '\'';
 
     return ajaxGetData(props.configuredUrl);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get results from a caml query
  * origin is optional
  * url is site relative url
@@ -606,22 +660,22 @@ function ajaxGetItemsByCaml(props) {
             headerdata = {
             'Accept': 'application/json; odata=minimalmetadata',
             'Content-Type': 'application/json; odata=verbose',
-            'X-RequestDigest': response.FormDigestValue
+            'X-RequestDigest': response.data.FormDigestValue
         };
 
         listUrlConfigure(props);
         props.listUrl += '/getitems';
 
-        return __WEBPACK_IMPORTED_MODULE_0_jquery__["ajax"]({
+        return __WEBPACK_IMPORTED_MODULE_0_axios__({
             url: props.listUrl,
-            type: 'POST',
+            method: 'POST',
             data: JSON.stringify(query),
             headers: headerdata
         });
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get a users permissions to site
  * the resolve is an array of permission for the user
  * origin is optional
@@ -636,11 +690,11 @@ function ajaxGetUserSitePermissions(props) {
     props.endPoint = "_api/web";
     checkUrlOrigin(props);
 
-    props.permsLink = props.configuredUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
+    props.permsLink = props.configuredUrl + '/getusereffectivepermissions(@user)?@user=\'' + encodedEmail + '\'';
     return ajaxGetUserPermissions(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get a users permissions to list
  * the resolve is an array of permission for the user
  * origin is optional
@@ -656,11 +710,11 @@ function ajaxGetUserListPermissions(props) {
 
     listUrlConfigure(props);
 
-    props.permsLink = props.listUrl + "/getusereffectivepermissions(@user)?@user='" + encodedEmail + "'";
+    props.permsLink = props.listUrl + '/getusereffectivepermissions(@user)?@user=\'' + encodedEmail + '\'';
     return ajaxGetUserPermissions(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * get the SP groups that a user is apart of
  * the resolve is an array of group names
  * origin is optional
@@ -674,13 +728,13 @@ function ajaxGetCurrentUserGroups(props) {
     props.endPoint = "/_api/web";
     checkUrlOrigin(props);
 
-    props.configuredUrl += "/GetUserbyId(" + props.userId + ")/Groups";
+    props.configuredUrl += '/GetUserbyId(' + props.userId + ')/Groups';
 
     return ajaxGetData(props.configuredUrl).then(function (groups) {
 
         var groupArray = [];
 
-        groups.value.forEach(function (item) {
+        groups.data.value.forEach(function (item) {
             groupArray.push(item.Title);
         });
 
@@ -688,7 +742,7 @@ function ajaxGetCurrentUserGroups(props) {
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * creates an item in the list that is passed
  * the resolve is an object with the created item info
  * origin is optional
@@ -703,7 +757,7 @@ function ajaxCreateItem(props) {
     return nonDeleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * updates an item in the list that is passed
  * the resolve is an object with the update item info
  * origin is optional
@@ -724,7 +778,7 @@ function ajaxUpdateItem(props) {
     return nonDeleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * deletes an item in the list that is passed
  * origin is optional
  * url is site relative url
@@ -744,7 +798,7 @@ function ajaxDeleteItem(props) {
     return deleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * recycles an item in the list that is passed
  * origin is optional
  * url is site relative url
@@ -759,7 +813,7 @@ function ajaxRecycleItem(props) {
     return deleteProcess(props);
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * retrieves profile properties for the user email passed
  * if you do not pass a user email it retrieves the current user
  * origin is optional
@@ -775,7 +829,7 @@ function userProfileData() {
 
     if (props.email) {
         props.endPoint = '_api/sp.userprofiles.peoplemanager';
-        addon = "/getpropertiesfor(@v)?@v='" + Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + "'&";
+        addon = '/getpropertiesfor(@v)?@v=\'' + Object(__WEBPACK_IMPORTED_MODULE_1_pd_sputil__["encodeAccountName"])(props.email) + '\'&';
     } else {
         //url for get current user
         props.endPoint = '_api/SP.UserProfiles.PeopleManager/GetMyProperties';
@@ -783,19 +837,19 @@ function userProfileData() {
     }
 
     checkUrlOrigin(props);
-    props.configuredUrl += addon + "$select=UserProfileProperties";
+    props.configuredUrl += addon + '$select=UserProfileProperties';
 
     return ajaxGetData(props.configuredUrl).then(function (userData) {
         //success
-        if (userData['odata.null'] === true) {
+        if (userData.data['odata.null'] === true) {
             return [];
         } else {
-            return userData.UserProfileProperties;
+            return userData.data.UserProfileProperties;
         }
     });
 }
 /**
- * Returns a jquery promise
+ * Returns a promise
  * retrieves the columns of the passed list
  * origin is optional
  * url is a site relative url
@@ -810,7 +864,7 @@ function getListColumns(props) {
         props.allData = false;
     }
     listUrlConfigure(props);
-    props.listUrl += "/fields?$filter=Hidden eq " + props.allData + " and ReadOnlyField eq " + props.allData;
+    props.listUrl += '/fields?$filter=Hidden eq ' + props.allData + ' and ReadOnlyField eq ' + props.allData;
 
     return ajaxGetData(props.listUrl);
 }
