@@ -1,6 +1,5 @@
 const path = require('path');
 const webpack = require('webpack');
-const UglifyJsPlugin = webpack.optimize.UglifyJsPlugin;
 const packageData = require("./package.json");
 const env  = require('yargs').argv.env;
 
@@ -17,11 +16,11 @@ if (env === 'dev' || env === 'build') {
         libraryTarget: 'umd',
         library: 'pdspserverajax' //this will be the global variable to hook into
     };
-    external.jquery = {
-        commonjs: 'jquery',
-        commonjs2: 'jquery',
-        amd: 'jquery',
-        root: '$'
+    external.axios = {
+        commonjs: 'axios',
+        commonjs2: 'axios',
+        amd: 'axios',
+        root: 'axios'
     };
     external['pd-sputil'] = {
         commonjs: 'pd-sputil',
@@ -32,7 +31,11 @@ if (env === 'dev' || env === 'build') {
 }
 if(env === 'build') {
     output.filename = `${packageData.name}.min.js`;
-    plugins.push(new UglifyJsPlugin({ minimize: true }));
+    let UglifyJsPlugin = new webpack.optimize.UglifyJsPlugin();
+    let envTrigger = new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify('production')
+    });
+    plugins.push(envTrigger, UglifyJsPlugin);
 }
 if(env === 'test') {
     entryPoint = './project_tests.js';
