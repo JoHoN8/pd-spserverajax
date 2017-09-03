@@ -3,9 +3,11 @@
   "version": "2.0.0",
   "main": "src/library.js",
   "scripts": {
-    "dev": "webpack --env dev",
-    "testFile": "webpack --env test",
-    "prod": "webpack --env build"
+    "testFile": "webpack --config ./webpackConfigs/webpack.config.testing.js",
+    "devBuild": "webpack --config ./webpackConfigs/webpack.config.dev.js",
+    "production": "webpack --config ./webpackConfigs/webpack.config.prod.js",
+    "prodBuild": "run-s devBuild production",
+    "docs": "jsdoc2md ./src/library.js > README.md"
   },
   "license": "ISC",
   "dependencies": {
@@ -13,13 +15,16 @@
     "pd-sputil": "^2.2.1"
   },
   "devDependencies": {
-    "babel-polyfill": "^6.23.0",
     "babel-core": "latest",
     "babel-loader": "latest",
-    "babel-preset-es2015": "latest",
-    "del": "latest",
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-preset-stage-0": "^6.24.1",
+    "clean-webpack-plugin": "^0.1.16",
+    "eslint": "^4.5.0",
+    "jsdoc-to-markdown": "^3.0.0",
+    "npm-run-all": "^4.1.1",
     "webpack": "latest",
-    "webpack-dev-server": "latest",
-    "yargs": "^8.0.1"
+    "webpack-dev-server": "latest"
   }
 }
