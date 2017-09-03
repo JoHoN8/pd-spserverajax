@@ -17,6 +17,7 @@
 import * as axios from 'axios';
 import * as ajaxHelpers from './helpers';
 import {encodeAccountName, getURLOrigin} from 'pd-sputil';
+import {meteredRequestProcessor} from 'pd-meteredrequestprocessor';
 
 const depTest = function() {
 	

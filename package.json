@@ -26,6 +26,7 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.16.2",
+    "pd-meteredrequestprocessor": "github:JoHoN8/pd-meteredRequestProcessor",
     "pd-sputil": "^2.2.1"
   },
   "devDependencies": {
