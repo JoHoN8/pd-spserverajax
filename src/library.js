@@ -12,14 +12,20 @@ import * as ajaxHelpers from './helpers';
 import {encodeAccountName, getURLOrigin} from 'pd-sputil';
 
 const depTest = function() {
-	if (!Promise || !Object.assign) {
-		throw new Error("Promise API is not available. Please add a polyfill as a dependency to continue.");
+	
+	try {
+		if (Promise && Object.assign) {
+			//all good move on
+		}
+	} catch (error) {
+		throw new Error("Promise API and Object.assign is not available. Please add a polyfill to continue.");
 	}
-	if (!axios) {
-		throw new Error("axios API is not available. Please add a axios as a dependency to continue.");
-	}
-	if (!encodeAccountName || !getURLOrigin) {
-		throw new Error("pd-sputil API is not available. Please add a pd-sputil as a dependency to continue.");
+	try {
+		if (axios) {
+			//all good move on
+		}
+	} catch (error) {
+		throw new Error("axios API is not available. Please add a axios to continue.");
 	}
 };
 depTest();
