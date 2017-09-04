@@ -40,7 +40,7 @@ depTest();
 
 const ajaxGetUserPermissions = function(props) {
 
-	return ajaxGetData(props.permsLink)
+	return getData(props.permsLink)
 	.then(function(response) {
 		return ajaxHelpers.parseBasePermissions(response.data);
 	});
@@ -50,11 +50,13 @@ const getEntityType = function(props) {
 	var entityData;
 
 	if (props.listName) {
-		entityData = ajaxHelpers.createlistitemtype(props.listName);
+		entityData = ajaxHelpers.listItemEntityPattern.test(props.listName) 
+		? props.listName
+		: ajaxHelpers.createlistitemtype(props.listName);
 		return Promise.resolve(entityData);
 	}
 
-	return ajaxGetListInfo(props)
+	return getListInfo(props)
 	.then(function(response) {
 		return response.data.ListItemEntityTypeFullName;
 	});
@@ -71,7 +73,7 @@ const nonDeleteProcess = function(props) {
 			'__metadata': {'type': type}
 		}, props.infoToServer);
 
-		return ajaxGetContext(props);
+		return getContext(props);
 	}).then(function(context) {
 
 		props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
@@ -94,7 +96,7 @@ const deleteProcess = function(props) {
 		props.headerData = {};
 	}
 
-	return ajaxGetContext(props)
+	return getContext(props)
 	.then(function(context) {
 
 		props.headerData['X-RequestDigest'] = context.data.FormDigestValue;
@@ -123,7 +125,7 @@ const deleteProcess = function(props) {
  * @param {string} props.url - site relative url
  * @returns {promise.<object>}
  */
-export function ajaxGetContext(props) {
+export function getContext(props) {
 	
 	props.endPoint = "_api/contextinfo";
 	ajaxHelpers.checkUrlOrigin(props);
@@ -143,7 +145,7 @@ export function ajaxGetContext(props) {
  * @param {string} url - full odata url
  * @returns {promise<object>}
  */
-export function ajaxGetData(url) {
+export function getData(url) {
 
 	return axios({
 		method: 'GET',
@@ -166,15 +168,15 @@ export function ajaxGetData(url) {
  * @param {string} [props.orderBy]
  * @returns {promise.<object[]>}
  */
-export function ajaxGetAllListResults(props) {
+export function getAllListResults(props) {
 
 	if(!props.listGUID && !props.listTitle) {
-		return Promise.reject("must pass listGUID or listTitle to ajaxGetAllListResults");
+		return Promise.reject("must pass listGUID or listTitle to getAllListResults");
 	}
 
 	ajaxHelpers.createGetAllUrl(props);
 
-	return ajaxGetData(props.listUrl)
+	return getData(props.listUrl)
 	.then(function(response) {
 		var currentResults = props.allResults || [],
 			responseData = response.data;
@@ -183,7 +185,7 @@ export function ajaxGetAllListResults(props) {
 		
 		if (responseData['odata.nextLink']) {
 			props.listUrl = responseData['odata.nextLink'];
-			return ajaxGetAllListResults(props);
+			return getAllListResults(props);
 		}
 		return props.allResults;
 	});
@@ -210,7 +212,7 @@ const ajaxGetBatch = function(props, arrayOfUrls) {
 
 	batchBody = batchContents.join('\r\n');
 
-	return ajaxGetContext(props)
+	return getContext(props)
 	.then((response) => {
 
 		props.endPoint = '_api/$batch';
@@ -259,7 +261,7 @@ const ajaxGetBatch = function(props, arrayOfUrls) {
  * @param {string[]} props.getUrls - full odata urls
  * @returns {promise<object[]>}
  */
-export function ajaxGetBatchMetered(props) {
+export function getBatchMetered(props) {
 	let urlsForTrip = [],
 		perTripCount = 0;
 
@@ -284,7 +286,7 @@ export function ajaxGetBatchMetered(props) {
 		props.allResults = props.allResults.concat(response);
 
 		if (props.numberToStartAt < props.totalItems) {
-			return ajaxGetBatchMetered(props);
+			return getBatchMetered(props);
 		}
 
 		return props.allResults;
@@ -298,7 +300,7 @@ export function ajaxGetBatchMetered(props) {
  * @param {string[]} props.profileEmails - email addresses of the users you want profile data for
  * @returns {promise<object[]>}
  */
-export function ajaxGetBatchProfiles(props) {
+export function getBatchProfiles(props) {
 	let profileUrls = null;
 	if (!props.profileEmails || props.profileEmails.length === 0) {
 		throw new Error("profile emails must be provided when calling the batch profile function");
@@ -315,7 +317,7 @@ export function ajaxGetBatchProfiles(props) {
 
 	let {origin, url} = props;
 	
-	return ajaxGetBatchMetered({
+	return getBatchMetered({
 		origin: origin,
 		url: url,
 		getUrls: profileUrls
@@ -330,10 +332,10 @@ export function ajaxGetBatchProfiles(props) {
  * @param {string} [props.listTitle]
  * @returns {promise<object>}
  */
-export function ajaxGetListInfo(props) {
+export function getListInfo(props) {
 
 	ajaxHelpers.listUrlConfigure(props);
-	return ajaxGetData(props.listUrl);
+	return getData(props.listUrl);
 }
 /**
  * Get user profile info from the SharePoint search service
@@ -345,7 +347,7 @@ export function ajaxGetListInfo(props) {
  * @param {string[]} props.properties - specify which properties you want back from the request
  * @returns {promise<object[]>}
  */
-export function ajaxPeopleSearch(props) {
+export function peopleSearch(props) {
 
 	var allResults = props.currentResults || [],
 		serverQueryData = {
@@ -377,7 +379,7 @@ export function ajaxPeopleSearch(props) {
 
 		if (relevantResults.TotalRows > (serverQueryData.startrow + relevantResults.RowCount)) {
 			props.startrow = serverQueryData.startrow + relevantResults.RowCount;
-			return ajaxPeopleSearch(props);
+			return peopleSearch(props);
 		} else {
 			return props.currentResults;
 		}
@@ -391,9 +393,9 @@ export function ajaxPeopleSearch(props) {
  * @param {string} props.email - email address of the user to check
  * @returns {promise<object>}
  */
-export function ajaxEnsureUser(props) {
+export function ensureUser(props) {
 	
-	return ajaxGetContext(props)
+	return getContext(props)
 	.then((response) => {
 	
 		props.endPoint = "_api/web";
@@ -420,14 +422,14 @@ export function ajaxEnsureUser(props) {
  * @param {string} props.email - email address of the user to retrieve
  * @returns {promise<object>}
  */
-export function ajaxGetSiteUserInfoByEmail(props) {
+export function getSiteUserInfoByEmail(props) {
 
 	props.endPoint = "_api/web/siteusers";
 	ajaxHelpers.checkUrlOrigin(props);
 
 	props.configuredUrl += `?$filter=LoginName eq '${encodeAccountName(props.email)}'`;
 
-	return ajaxGetData(props.configuredUrl);
+	return getData(props.configuredUrl);
 }
 /**
  * Get request that uses CAML to filter results
@@ -439,9 +441,9 @@ export function ajaxGetSiteUserInfoByEmail(props) {
  * @param {string} [props.listTitle]
  * @returns {promise<object>}
  */
-export function ajaxGetItemsByCaml(props) {
+export function getItemsByCaml(props) {
 
-	return ajaxGetContext(props)
+	return getContext(props)
 	.then((response) => {
 
 		let query = { "query" :
@@ -476,7 +478,7 @@ export function ajaxGetItemsByCaml(props) {
  * @param {string} props.email - email of the user to get permissions for
  * @returns {promise<string[]>}
  */
-export function ajaxGetUserSitePermissions(props) {
+export function getUserSitePermissions(props) {
 
 	let encodedEmail = encodeAccountName(props.email);
 
@@ -496,7 +498,7 @@ export function ajaxGetUserSitePermissions(props) {
  * @param {string} props.email - email of the user to check permission of
  * @returns {promise<sting[]>}
  */
-export function ajaxGetUserListPermissions(props) {
+export function getUserListPermissions(props) {
 
 	let encodedEmail = encodeAccountName(props.email);
 
@@ -513,14 +515,14 @@ export function ajaxGetUserListPermissions(props) {
  * @param {number} props.userId - users site id number
  * @returns {promise<sting[]>}
  */
-export function ajaxGetCurrentUserGroups(props) {
+export function getCurrentUserGroups(props) {
 
 	props.endPoint = "/_api/web";
 	ajaxHelpers.checkUrlOrigin(props);
 
 	props.configuredUrl += `/GetUserbyId(${props.userId})/Groups`;
 
-	return ajaxGetData(props.configuredUrl)
+	return getData(props.configuredUrl)
 	.then(function(groups){
 
 		var groupArray = [];
@@ -544,7 +546,7 @@ export function ajaxGetCurrentUserGroups(props) {
  * @param {object} props.infoToServer - object whos key is the column name and the value is what you want stored in that column
  * @returns {promise<object>}
  */
-export function ajaxCreateItem(props) {
+export function createItem(props) {
 	return nonDeleteProcess(props);
 }
 /**
@@ -560,7 +562,7 @@ export function ajaxCreateItem(props) {
  * @param {object} props.infoToServer - object whos key is the column name and the value is what you want stored in that column
  * @returns {promise<object>}
  */
-export function ajaxUpdateItem(props) {
+export function updateItem(props) {
 
 	props.headerData = {
 		"X-HTTP-Method": "MERGE",
@@ -580,7 +582,7 @@ export function ajaxUpdateItem(props) {
  * @param {number} props.itemId - id of the item to delete
  * @returns {promise<object>}
  */
-export function ajaxDeleteItem(props) {
+export function deleteItem(props) {
 	//todo try to complete this function without an etag
 	props.headerData = {
 		'X-HTTP-Method' : 'DELETE',
@@ -598,7 +600,7 @@ export function ajaxDeleteItem(props) {
  * @param {number} props.itemId - id of the item to recycle
  * @returns {promise<object>}
  */
-export function ajaxRecycleItem(props) {
+export function recycleItem(props) {
 
 	props.urlModifier = "/recycle";
 	return deleteProcess(props);
@@ -612,7 +614,7 @@ export function ajaxRecycleItem(props) {
  * @param {string} [props.email] - email of the user you want profile data for 
  * @returns {promise<object[]>}
  */
-export function userProfileData(props = {}) {
+export function getUserProfileData(props = {}) {
 
 	let addon = null;
 
@@ -628,7 +630,7 @@ export function userProfileData(props = {}) {
 	ajaxHelpers.checkUrlOrigin(props);
 	props.configuredUrl += `${addon}$select=UserProfileProperties`;
 	
-	return ajaxGetData(props.configuredUrl)
+	return getData(props.configuredUrl)
 	.then(function(userData){ //success
 		if (userData.data['odata.null'] === true) {
 			return [];
@@ -644,7 +646,6 @@ export function userProfileData(props = {}) {
  * @param {string} props.url - site relative url
  * @param {string} props.listGUID - use either listGUID or listTitle not both
  * @param {string} [props.listTitle]
- * @param {boolean} [props.allData] - include read only and hidden columns
  * @returns {promise<object>}
  */
 export function getListColumns(props) {
@@ -655,5 +656,196 @@ export function getListColumns(props) {
 	ajaxHelpers.listUrlConfigure(props);
 	props.listUrl += `/fields?$filter=Hidden eq ${props.allData} and ReadOnlyField eq ${props.allData}`;
 
-	return ajaxGetData(props.listUrl);
+	return getData(props.listUrl);
+}
+class meteredAjax extends meteredRequestProcessor{
+	constructor() {
+		super();
+	}
+	_checkMeteredDataType(props) {
+		if (!props.items || (Array.isArray(props.items) === false)) {
+			throw new Error(ajaxHelpers.meteredItemsIncorrectDataType);
+		}
+	}
+	_getMeteredListName(props) {
+		let entityData = null;
+		
+		if (props.listName) {
+			entityData = Promise.resolve(ajaxHelpers.listNamePresent);
+		} else {
+			entityData = getEntityType(props);
+		}
+		return entityData;
+	}
+}
+/**
+ * The processingCompletedCallback will be passed the order number and the process status (success or fail) to trigger any completed side effects
+ * The order number is your id to locate elements (dom or whatever) based on the specific item processing
+ *
+ * @callback itemCompletedProcessing
+ * @param {string} status
+ * @param {number} index
+ */
+/**
+ * The index and itemData to process will be passed to this function
+ * it MUST return a native promise.
+ * the order number is your id to locate elements (dom or whatever) based on the specific item processing
+ *
+ * @callback itemPreProcessing
+ * @param {*} itemData
+ * @param {number} index
+ */
+
+
+/**
+ * Creates multiple items via REST, 
+ * items array should contain object with a key of column name and property of value you want stored in that column
+ * ex. {
+ * 	Title: "something"
+ * }
+ * @param {object} props
+ * @param {object[]} props.items - items to create
+ * @param {string} [props.origin] 
+ * @param {string} props.url - site relative url
+ * @param {string} props.listGUID - use either listGUID or listTitle not both
+ * @param {string} [props.listTitle]
+ * @param {string} [props.listName] - server name for the list
+ * @param {itemPreProcessing} [props.itemCreatedCB] - this call back is called when an item is added to be processed
+ * @param {itemCompletedProcessing} [props.itemCompletedCB] - this call back is called when item is completed
+ * @returns {promise<object[]>}
+ */
+export function meteredCreateItems(props) {
+	
+	let requestPro = new meteredAjax();
+	requestPro._checkMeteredDataType(props);
+
+	return requestPro._getMeteredListName(props)
+	.then(entityType => {
+		if (entityType !== ajaxHelpers.listNamePresent) {
+			props.listName = entityType;
+		}
+
+		
+		let prepedItems = props.items.map(item => {
+			let obj = {
+				url: props.url,
+				listName: entityType,
+				infoToServer: item
+			};
+			if (props.listGUID) {
+				obj.listGUID = props.listGUID;
+			} else {
+				obj.listTitle = props.listTitle;
+			}
+			return obj;
+		});
+
+		requestPro.setPreProcessingCB(function(itemData, index) {
+			if (props.itemCreatedCB) {
+				props.itemCreatedCB(index, itemData);
+			}
+			return createItem(itemData);
+		});
+		requestPro.setItemProcessedCB(props.itemCompletedCB);
+		return requestPro.init(prepedItems);
+
+	});
+	
+}
+/**
+ * Updates multiple items via REST, 
+ * items array should contain object with 2 properties itemId and updateInfo and 1 optional property etag
+ * ex. {
+ * 	itemId: 3,
+ * 	etag: ""3""
+ * 	updateInfo: {
+ * 		Title: "example string"
+ * 	}
+ * }
+ * @param {object} props
+ * @param {object[]} props.items - items to update
+ * @param {string} [props.origin] 
+ * @param {string} props.url - site relative url
+ * @param {string} props.listGUID - use either listGUID or listTitle not both
+ * @param {string} [props.listTitle]
+ * @param {string} [props.listName] - server name for the list
+ * @param {itemPreProcessing} [props.itemCreatedCB] - this call back is called when an item is added to be processed
+ * @param {itemCompletedProcessing} [props.itemCompletedCB] - this call back is called when item is completed
+ * @returns {promise<object[]>}
+ */
+export function meteredUpdateItems(props) {
+	let requestPro = new meteredAjax();
+	requestPro._checkMeteredDataType(props);
+
+	return requestPro._getMeteredListName(props)
+	.then(entityType => {
+		if (entityType !== ajaxHelpers.listNamePresent) {
+			props.listName = entityType;
+		}
+		
+		let prepedItems = props.items.map(item => {
+			let obj = {
+				url: props.url,
+				listName: entityType,
+				infoToServer: item.updateInfo,
+				itemId: item.itemId,
+				etag :item.etag
+			};
+			if (props.listGUID) {
+				obj.listGUID = props.listGUID;
+			} else {
+				obj.listTitle = props.listTitle;
+			}
+			return obj;
+		});
+
+		requestPro.setPreProcessingCB(function(itemData, index) {
+			if (props.itemCreatedCB) {
+				props.itemCreatedCB(index, itemData);
+			}
+			return updateItem(itemData);
+		});
+		requestPro.setItemProcessedCB(props.itemCompletedCB);
+		return requestPro.init(prepedItems);
+	
+	});
+}
+/**
+ * Recycles multiple items via REST
+ * @param {object} props
+ * @param {number[]} props.items - ids of items to recycle
+ * @param {string} [props.origin] 
+ * @param {string} props.url - site relative url
+ * @param {string} props.listGUID - use either listGUID or listTitle not both
+ * @param {string} [props.listTitle]
+ * @param {itemPreProcessing} [props.itemCreatedCB] - this call back is called when an item is added to be processed
+ * @param {itemCompletedProcessing} [props.itemCompletedCB] - this call back is called when item is completed
+ * @returns {promise<object[]>}
+ */
+export function meteredRecycleItems(props) {
+
+	let requestPro = new meteredAjax();
+	requestPro._checkMeteredDataType(props);
+	
+	let prepedItems = props.items.map(item => {
+		let obj = {
+			url: props.url,
+			itemId: item
+		};
+		if (props.listGUID) {
+			obj.listGUID = props.listGUID;
+		} else {
+			obj.listTitle = props.listTitle;
+		}
+		return obj;
+	});
+
+	requestPro.setPreProcessingCB(function(itemData, index) {
+		if (props.itemCreatedCB) {
+			props.itemCreatedCB(index, itemData);
+		}
+		return recycleItem(itemData);
+	});
+	requestPro.setItemProcessedCB(props.itemCompletedCB);
+	return requestPro.init(prepedItems);
 }

@@ -4,6 +4,9 @@ e
 import {getURLOrigin} from 'pd-sputil';
 export const minimalMeta = "application/json;odata=minimalmetadata";
 export const verboseMeta = "application/json;odata=verbose";
+export const listNamePresent = "listName_present";
+export const meteredItemsIncorrectDataType = "An array must be passed to utilize the metered functions";
+export const listItemEntityPattern = /(SP\.Data\.).+(ListItem)/i;
 export const createlistitemtype = function(listName) {
 	return 'SP.Data.' + 
 		listName.charAt(0).toUpperCase() + 
