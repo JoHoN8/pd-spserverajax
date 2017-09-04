@@ -1,12 +1,18 @@
 <a name="module_pdspserverajax"></a>
 
 ## pdspserverajax
-Title: pd-spservercontacts
+<h4>Title: pd-spservercontacts</h4>
+	<p>
 	Requires:
-		babel polyfill - object assign and promise
-		axios - the response of the server is in the data property when a plain axios response is returned
-		pd-sputil - encodeAccountName, getURLOrigin
-	pdspserverajax - is exposed is a global namespace if added to browser via script tag
+		<ul>
+		<li>babel polyfill - object assign and promise</li>
+		<li>axios - the response of the server is in the data property when a plain axios response is returned</li>
+		<li>pd-sputil - encodeAccountName, getURLOrigin</li>
+		</ul>
+	</p>
+	<p>
+		pdspserverajax - is exposed is a global namespace if added to browser via script tag
+	</p>
 
 **Author**: "Jered McGlohon"  
 
