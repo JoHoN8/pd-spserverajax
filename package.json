@@ -1,6 +1,6 @@
 {
   "name": "pd-spserverajax",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "main": "src/library.js",
   "scripts": {
     "testFile": "webpack --config ./webpackConfigs/webpack.config.testing.js",
@@ -8,6 +8,20 @@
     "production": "webpack --config ./webpackConfigs/webpack.config.prod.js",
     "prodBuild": "run-s devBuild production",
     "docs": "jsdoc2md ./src/library.js > README.md"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JoHoN8/pd-spserverajax.git"
+  },
+  "keywords": [
+    "sharepoint",
+    "sharepoint REST",
+    "sharepoint ajax"
+  ],
+  "author": {
+    "name": "Jered McGlohon",
+    "email": "puredirective@gmail.com",
+    "url": "https://github.com/JoHoN8"
   },
   "license": "ISC",
   "dependencies": {

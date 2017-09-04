@@ -1,10 +1,13 @@
 /**
-	pd-spservercontacts
-	requires babel polyfill for object assign and promise
-	needs encodeAccountName, getURLOrigin from pd-sputil
-	needs all of axios - when using this library you get the response of the server from data property when a plain axios response is returned
-	exposes a global pdspserverajax if used in script tag of browser
-	@module pd-spserverajax
+	Title: pd-spservercontacts
+	Requires:
+		babel polyfill - object assign and promise
+		axios - the response of the server is in the data property when a plain axios response is returned
+		pd-sputil - encodeAccountName, getURLOrigin
+	pdspserverajax - is exposed is a global namespace if added to browser via script tag
+
+	@author "Jered McGlohon"
+	@module pdspserverajax
  */
 
 import * as axios from 'axios';
