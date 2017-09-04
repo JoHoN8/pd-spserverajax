@@ -1,8 +1,7 @@
 <a name="module_pdspserverajax"></a>
 
 ## pdspserverajax
-<h4>Title: pd-spservercontacts</h4>
-	<p>
+<p>
 	Requires:
 		<ul>
 		<li>babel polyfill - object assign and promise</li>

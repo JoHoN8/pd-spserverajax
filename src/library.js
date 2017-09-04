@@ -1,5 +1,4 @@
 /**
-	<h4>Title: pd-spservercontacts</h4>
 	<p>
 	Requires:
 		<ul>
