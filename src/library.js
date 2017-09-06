@@ -742,7 +742,7 @@ export function meteredCreateItems(props) {
 
 		requestPro.setPreProcessingCB(function(itemData, index) {
 			if (props.itemCreatedCB) {
-				props.itemCreatedCB(index, itemData);
+				props.itemCreatedCB(itemData, index);
 			}
 			return createItem(itemData);
 		});
@@ -801,7 +801,7 @@ export function meteredUpdateItems(props) {
 
 		requestPro.setPreProcessingCB(function(itemData, index) {
 			if (props.itemCreatedCB) {
-				props.itemCreatedCB(index, itemData);
+				props.itemCreatedCB(itemData, index);
 			}
 			return updateItem(itemData);
 		});
@@ -842,7 +842,7 @@ export function meteredRecycleItems(props) {
 
 	requestPro.setPreProcessingCB(function(itemData, index) {
 		if (props.itemCreatedCB) {
-			props.itemCreatedCB(index, itemData);
+			props.itemCreatedCB(itemData, index);
 		}
 		return recycleItem(itemData);
 	});
