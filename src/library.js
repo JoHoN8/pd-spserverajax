@@ -16,7 +16,7 @@
 
 import * as axios from 'axios';
 import * as ajaxHelpers from './helpers';
-import {encodeAccountName, getURLOrigin} from 'pd-sputil';
+import {encodeAccountName, getURLOrigin, createGUID} from 'pd-sputil';
 import {meteredRequestProcessor} from 'pd-meteredrequestprocessor';
 
 const depTest = function() {
@@ -192,7 +192,7 @@ export function getAllListResults(props) {
 }
 const ajaxGetBatch = function(props, arrayOfUrls) {
 
-	var batchGUID = ajaxHelpers.createGUID(),
+	var batchGUID = createGUID(),
 		batchBody,
 		batchHeader,
 		batchContents = [];
@@ -692,7 +692,7 @@ class meteredAjax extends meteredRequestProcessor{
  * the order number is your id to locate elements (dom or whatever) based on the specific item processing
  *
  * @callback itemPreProcessing
- * @param {*} itemData
+ * @param {any} itemData
  * @param {number} index
  */
 

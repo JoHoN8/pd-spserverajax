@@ -408,6 +408,6 @@ The index and itemData to process will be passed to this functionit MUST return
 
 | Param | Type |
 | --- | --- |
-| itemData | <code>\*</code> | 
+| itemData | <code>any</code> | 
 | index | <code>number</code> | 
 

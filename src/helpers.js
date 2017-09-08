@@ -13,33 +13,6 @@ export const createlistitemtype = function(listName) {
 		listName.slice(1) + 
 		'ListItem';
 };
-export const guidHexCodes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
-export const createGUID = function() {
-	var result = '';
-
-	for (var index = 0; index < 32; index++) {
-		var value = Math.floor(Math.random() * 16);
-
-		switch (index) {
-		case 8:
-			result += '-';
-			break;
-		case 12:
-			value = 4;
-			result += '-';
-			break;
-		case 16:
-			value = value & 3 | 8;
-			result += '-';
-			break;
-		case 20:
-			result += '-';
-			break;
-		}
-		result += guidHexCodes[value];
-	}
-	return result;
-};
 export const checkUrlOrigin = function(props) {
 
 	props.configuredUrl = props.origin ? props.origin : getURLOrigin();
