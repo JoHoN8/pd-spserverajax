@@ -17,7 +17,7 @@
 import * as axios from 'axios';
 import * as ajaxHelpers from './helpers';
 import {encodeAccountName, getURLOrigin, createGUID} from 'pd-sputil';
-import {meteredRequestProcessor} from 'pd-meteredrequestprocessor';
+import {MeteredRequestProcessor} from 'pd-meteredrequestprocessor';
 
 const depTest = function() {
 	
@@ -658,7 +658,7 @@ export function getListColumns(props) {
 
 	return getData(props.listUrl);
 }
-class meteredAjax extends meteredRequestProcessor{
+class meteredAjax extends MeteredRequestProcessor{
 	constructor() {
 		super();
 	}
@@ -718,7 +718,7 @@ export function meteredCreateItems(props) {
 	
 	let requestPro = new meteredAjax();
 	requestPro._checkMeteredDataType(props);
-
+	
 	return requestPro._getMeteredListName(props)
 	.then(entityType => {
 		if (entityType !== ajaxHelpers.listNamePresent) {
