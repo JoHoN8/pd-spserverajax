@@ -1,6 +1,6 @@
 {
   "name": "pd-spserverajax",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "main": "src/library.js",
   "scripts": {
     "testFile": "webpack --config ./webpackConfigs/webpack.config.testing.js",
@@ -26,8 +26,8 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.16.2",
-    "pd-meteredrequestprocessor": "github:JoHoN8/pd-meteredRequestProcessor#1.1.2",
-    "pd-sputil": "^2.3.2"
+    "pd-meteredrequestprocessor": "github:JoHoN8/pd-meteredRequestProcessor#1.1.3",
+    "pd-sputil": "^2.3.3"
   },
   "devDependencies": {
     "babel-core": "latest",
