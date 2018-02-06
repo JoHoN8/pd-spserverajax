@@ -101,8 +101,8 @@ export const createGetAllUrl = function(props) {
 		props.listUrl += `$orderby=${props.orderBy}&`;
 	}
 
-	if(/\$$/.test(props.listUrl)) {
-		//if $ is the last character then get rid of it
+	if(/&$/.test(props.listUrl)) {
+		//if & is the last character then get rid of it
 		props.listUrl = props.listUrl.slice(0,-1);
 	}
 
