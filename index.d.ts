@@ -84,7 +84,7 @@ declare interface meteredResponse {
 declare interface peopleSerachProps extends props {
 	query: string,
 	sourceId?: string,
-	properties?: string[]
+	properties: string[]
 }
 declare interface meteredBaseProps extends listProps {
 	itemCreatedCB?: (itemData:anyOject, index:number) => void,
