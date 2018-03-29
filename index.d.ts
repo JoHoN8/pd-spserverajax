@@ -33,7 +33,7 @@ declare interface props {
 	url: string
 }
 declare interface listProps extends props {
-	listGuid: string,
+	listGUID: string,
 	listTitle?: string
 }
 declare interface meteredGetProps extends props {
@@ -63,7 +63,7 @@ declare interface userGroups extends props {
 }
 declare interface listPostBase extends listProps {
 	listName?: string,
-	infoToServer: anyOject
+	infoToServer: any
 }
 declare interface listItemProps extends listPostBase {
 	etag?: string,
@@ -87,7 +87,7 @@ declare interface peopleSerachProps extends props {
 	properties: string[]
 }
 declare interface meteredBaseProps extends listProps {
-	itemCreatedCB?: (itemData:anyOject, index:number) => void,
+	itemCreatedCB?: (itemData:any, index:number) => void,
 	itemCompletedCB?: (status:string, index:number) => void
 }
 declare interface meteredCreateProps extends meteredBaseProps {
@@ -105,11 +105,11 @@ declare interface meteredRecycleProps extends meteredBaseProps {
  *~ is the exported object from the file
  */
 export function getContext(props:props): Promise<axios.AxiosResponse>;
-export function getAllListResults(props:allResults): Promise<anyOject[]>;
-export function getBatchMetered(props:meteredGetProps): Promise<anyOject[]>;
-export function getBatchProfiles(props:batchProfilesProps): Promise<anyOject[]>;
+export function getAllListResults(props:allResults): Promise<any[]>;
+export function getBatchMetered(props:meteredGetProps): Promise<any[]>;
+export function getBatchProfiles(props:batchProfilesProps): Promise<any[]>;
 export function getListInfo(props:listProps): Promise<axios.AxiosResponse>;
-export function peopleSearch(props:peopleSerachProps): Promise<anyOject[]>;
+export function peopleSearch(props:peopleSerachProps): Promise<any[]>;
 export function ensureUser(props:getByEmailProps): Promise<axios.AxiosResponse>;
 export function getSiteUserInfoByEmail(props:getByEmailProps): Promise<axios.AxiosResponse>;
 export function getItemsByCaml(props:getByCamlProps): Promise<axios.AxiosResponse>;
@@ -120,7 +120,7 @@ export function createItem(props:listPostBase): Promise<axios.AxiosResponse>;
 export function updateItem(props:listItemProps): Promise<axios.AxiosResponse>;
 export function deleteItem(props:listItemProps): Promise<axios.AxiosResponse>;
 export function recycleItem(props:listItemRecycleProps): Promise<axios.AxiosResponse>;
-export function getUserProfileData(props?:profilePropertiesProps): Promise<anyOject>;
+export function getUserProfileData(props?:profilePropertiesProps): Promise<any>;
 export function getListColumns(props:listProps): Promise<axios.AxiosResponse>;
 export function meteredCreateItems(props:meteredCreateProps): Promise<meteredResponse[]>;
 export function meteredUpdateItems(props:listItemProps): Promise<meteredResponse[]>;
