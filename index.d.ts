@@ -105,6 +105,7 @@ declare interface meteredRecycleProps extends meteredBaseProps {
  *~ is the exported object from the file
  */
 export function getContext(props:props): Promise<axios.AxiosResponse>;
+export function getData(url:string): Promise<axios.AxiosResponse>;
 export function getAllListResults(props:allResults): Promise<any[]>;
 export function getBatchMetered(props:meteredGetProps): Promise<any[]>;
 export function getBatchProfiles(props:batchProfilesProps): Promise<any[]>;
