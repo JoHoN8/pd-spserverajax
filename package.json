@@ -1,6 +1,6 @@
 {
   "name": "pd-spserverajax",
-  "version": "2.1.8",
+  "version": "2.2.0",
   "main": "src/library.js",
   "scripts": {
     "testFile": "webpack --config ./webpackConfigs/webpack.config.testing.js",
